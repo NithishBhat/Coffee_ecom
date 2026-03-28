@@ -36,9 +36,9 @@ export default function TrackOrder() {
     setOrder(null);
     setOrders(null);
     try {
-      const { data } = await api.get(
-        `/orders/track?orderId=${encodeURIComponent(oid.trim())}&phone=${encodeURIComponent(ph)}`
-      );
+      const { data } = await api.get('/orders/track', {
+        params: { orderId: oid.trim(), phone: ph },
+      });
       setOrder(data.order);
     } catch {
       toast.error('No order found. Check your Order ID and phone number.');
@@ -53,9 +53,9 @@ export default function TrackOrder() {
     setOrder(null);
     setOrders(null);
     try {
-      const { data } = await api.get(
-        `/orders/track-by-phone?phone=${encodeURIComponent(ph)}`
-      );
+      const { data } = await api.get('/orders/track-by-phone', {
+        params: { phone: ph },
+      });
       setOrders(data.orders);
       if (data.orders.length === 0) {
         toast.error('No orders found for this phone number.');
