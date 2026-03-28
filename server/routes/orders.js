@@ -140,7 +140,16 @@ router.get('/track', async (req, res, next) => {
     if (!orderId || !phone) {
       return res.status(400).json({ success: false, message: 'Order ID and phone number are required' });
     }
-    const order = await Order.findOne({ orderId, 'customer.phone': phone });
+    // Normalize to last 10 digits to handle +91/91 prefix variations
+    const phone10 = phone.replace(/^\+?91/, '').slice(-10);
+    const order = await Order.findOne({
+      orderId: orderId.trim(),
+      $or: [
+        { 'customer.phone': phone10 },
+        { 'customer.phone': `+91${phone10}` },
+        { 'customer.phone': `91${phone10}` },
+      ],
+    });
     if (!order) {
       return res.status(404).json({ success: false, message: 'No order found matching that ID and phone number' });
     }
