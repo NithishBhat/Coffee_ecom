@@ -107,6 +107,7 @@ export default function Checkout() {
   }
 
   const inputClass = 'w-full px-4 py-3 rounded-xl border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent text-sm';
+  const selectClass = `${inputClass} appearance-none bg-[url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236F4E37' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")] bg-[length:16px] bg-[right_12px_center] bg-no-repeat pr-10`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -117,20 +118,24 @@ export default function Checkout() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="font-semibold text-coffee-800 text-lg mb-4">Contact Details</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input name="name" value={form.name} onChange={update} placeholder="Full Name" className={inputClass} />
-              <input name="email" value={form.email} onChange={update} placeholder="Email" type="email" className={inputClass} />
-              <input name="phone" value={form.phone} onChange={update} placeholder="Phone (10 digits)" className={`${inputClass} sm:col-span-2`} />
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input name="name" value={form.name} onChange={update} placeholder="Full Name" className={inputClass} />
+                <input name="email" value={form.email} onChange={update} placeholder="Email" type="email" className={inputClass} />
+              </div>
+              <input name="phone" value={form.phone} onChange={update} placeholder="Phone (10 digits)" className={inputClass} />
             </div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="font-semibold text-coffee-800 text-lg mb-4">Delivery Address</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input name="street" value={form.street} onChange={update} placeholder="House No 12, 3rd Cross, Near Temple" className={`${inputClass} sm:col-span-2`} />
-              <input name="pincode" value={form.pincode} onChange={update} placeholder="Pincode (6 digits)" maxLength={6} inputMode="numeric" pattern="\d{6}" className={inputClass} />
-              <input name="city" value={form.city} onChange={update} placeholder="City" className={inputClass} />
-              <select name="state" value={form.state} onChange={update} className={`${inputClass} sm:col-span-2`}>
+            <div className="flex flex-col gap-4">
+              <input name="street" value={form.street} onChange={update} placeholder="House No 12, 3rd Cross, Near Temple" className={inputClass} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input name="pincode" value={form.pincode} onChange={update} placeholder="Pincode (6 digits)" maxLength={6} inputMode="numeric" pattern="\d{6}" className={inputClass} />
+                <input name="city" value={form.city} onChange={update} placeholder="City" className={inputClass} />
+              </div>
+              <select name="state" value={form.state} onChange={update} className={selectClass} style={{ maxHeight: '48px' }}>
                 <option value="">Select State / Union Territory</option>
                 {INDIAN_STATES.map((s) => (
                   <option key={s} value={s}>{s}</option>
