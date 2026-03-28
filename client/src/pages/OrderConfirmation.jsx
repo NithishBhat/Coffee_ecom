@@ -1,19 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiCheckCircle, FiMessageCircle } from 'react-icons/fi';
+import { FiCheckCircle, FiMessageCircle, FiCopy } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import api from '../utils/api';
+import { useCart } from '../context/CartContext';
+
+const STEPS = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+const STEP_MAP = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
 
 export default function OrderConfirmation() {
   const { id } = useParams();
+  const { clearCart } = useCart();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const cleared = useRef(false);
 
   useEffect(() => {
     api.get(`/orders/${id}`)
-      .then((res) => setOrder(res.data.order))
+      .then((res) => {
+        setOrder(res.data.order);
+        if (!cleared.current && res.data.order.paymentStatus === 'paid') {
+          clearCart();
+          cleared.current = true;
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, clearCart]);
 
   if (loading) {
     return (
@@ -34,7 +47,16 @@ export default function OrderConfirmation() {
     );
   }
 
-  const whatsappMsg = encodeURIComponent(`Hi, I just placed order #${order.orderId}`);
+  const currentStep = STEP_MAP[order.fulfillmentStatus] ?? 0;
+
+  const whatsappMsg = encodeURIComponent(
+    `Hi! My order details:\nOrder ID: ${order.orderId}\nTotal: ₹${order.totalAmount.toLocaleString('en-IN')}\nItems: ${order.items.map((i) => `${i.name} x${i.quantity}`).join(', ')}`
+  );
+
+  const copyOrderId = () => {
+    navigator.clipboard.writeText(order.orderId);
+    toast.success('Order ID copied!');
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
@@ -44,6 +66,43 @@ export default function OrderConfirmation() {
         <p className="text-coffee-500">Order ID: <span className="font-semibold text-coffee-700">{order.orderId}</span></p>
       </div>
 
+      {/* Save Order ID banner */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center justify-between gap-3">
+        <p className="text-sm text-amber-800">
+          Save your order ID: <span className="font-bold">{order.orderId}</span> to track your order
+        </p>
+        <button onClick={copyOrderId} className="flex-shrink-0 text-amber-700 hover:text-amber-900 transition-colors">
+          <FiCopy size={18} />
+        </button>
+      </div>
+
+      {/* Fulfillment Progress */}
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <h2 className="font-semibold text-coffee-800 mb-5">Order Status</h2>
+        <div className="flex items-center justify-between relative">
+          <div className="absolute top-4 left-0 right-0 h-0.5 bg-coffee-100" />
+          <div
+            className="absolute top-4 left-0 h-0.5 bg-green-500 transition-all duration-500"
+            style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+          />
+          {STEPS.map((step, i) => (
+            <div key={step} className="relative flex flex-col items-center z-10">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                i <= currentStep
+                  ? 'bg-green-500 border-green-500 text-white'
+                  : 'bg-white border-coffee-200 text-coffee-400'
+              }`}>
+                {i < currentStep ? '✓' : i + 1}
+              </div>
+              <span className={`text-xs mt-2 ${i <= currentStep ? 'text-green-600 font-semibold' : 'text-coffee-400'}`}>
+                {step}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Order Details */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <h2 className="font-semibold text-coffee-800 mb-4">Order Details</h2>
         <div className="space-y-3">
@@ -66,9 +125,16 @@ export default function OrderConfirmation() {
             <span>Total</span>
             <span>₹{order.totalAmount.toLocaleString('en-IN')}</span>
           </div>
+          <div className="flex justify-between text-sm text-coffee-600">
+            <span>Payment</span>
+            <span className={`capitalize font-medium ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'}`}>
+              {order.paymentStatus}
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* Delivery Address */}
       <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
         <h2 className="font-semibold text-coffee-800 mb-3">Delivery Address</h2>
         <p className="text-sm text-coffee-600">
@@ -82,18 +148,18 @@ export default function OrderConfirmation() {
 
       <div className="flex flex-col sm:flex-row gap-3">
         <a
-          href={`https://wa.me/919999999999?text=${whatsappMsg}`}
+          href={`https://wa.me/?text=${whatsappMsg}`}
           target="_blank"
           rel="noreferrer"
           className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition-colors"
         >
-          <FiMessageCircle /> Chat on WhatsApp
+          <FiMessageCircle /> Share on WhatsApp
         </a>
         <Link
-          to="/products"
+          to="/track"
           className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
         >
-          Continue Shopping
+          Track Order
         </Link>
       </div>
     </div>

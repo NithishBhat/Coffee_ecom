@@ -21,6 +21,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-8">
           <NavLink to="/" end className={linkClass}>Home</NavLink>
           <NavLink to="/products" className={linkClass}>Shop</NavLink>
+          <NavLink to="/track" className={linkClass}>Track Order</NavLink>
           <NavLink to="/cart" className={linkClass}>
             <span className="relative flex items-center gap-1">
               <FiShoppingBag size={20} />
@@ -44,6 +45,7 @@ export default function Navbar() {
         <div className="md:hidden bg-coffee-800 border-t border-coffee-700 px-4 pb-4 space-y-3">
           <NavLink to="/" end className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Home</NavLink>
           <NavLink to="/products" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Shop</NavLink>
+          <NavLink to="/track" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Track Order</NavLink>
           <NavLink to="/cart" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>
             Cart {itemCount > 0 && `(${itemCount})`}
           </NavLink>
