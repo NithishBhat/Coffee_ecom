@@ -43,21 +43,21 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Counter schema for auto-incrementing order IDs
-const counterSchema = new mongoose.Schema({
-  _id: String,
-  seq: { type: Number, default: 1000 },
-});
-
-const Counter = mongoose.model('Counter', counterSchema);
+const crypto = require('crypto');
 
 orderSchema.statics.getNextOrderId = async function () {
-  const counter = await Counter.findByIdAndUpdate(
-    'orderId',
-    { $inc: { seq: 1 }, $setOnInsert: { _id: 'orderId' } },
-    { new: true, upsert: true }
-  );
-  return `ORD-${1000 + counter.seq}`;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const bytes = crypto.randomBytes(6);
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars[bytes[i] % chars.length];
+    }
+    const id = `ORD-${code}`;
+    const exists = await this.findOne({ orderId: id }).lean();
+    if (!exists) return id;
+  }
+  throw new Error('Failed to generate unique order ID');
 };
 
 module.exports = mongoose.model('Order', orderSchema);
