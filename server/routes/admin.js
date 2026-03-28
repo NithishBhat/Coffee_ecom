@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const auth = require('../middleware/auth');
 const Product = require('../models/Product');
 const Order = require('../models/Order');
+const { sendOrderStatusUpdate } = require('../utils/emailTemplates');
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -87,15 +88,21 @@ router.get('/orders', async (req, res, next) => {
 router.put('/orders/:id', async (req, res, next) => {
   try {
     const { fulfillmentStatus } = req.body;
-    const order = await Order.findOneAndUpdate(
-      { orderId: req.params.id },
-      { fulfillmentStatus },
-      { new: true, runValidators: true }
-    );
-    if (!order) {
+    // Fetch current order to compare old status
+    const existing = await Order.findOne({ orderId: req.params.id });
+    if (!existing) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
-    res.json({ success: true, order });
+    const oldStatus = existing.fulfillmentStatus;
+    existing.fulfillmentStatus = fulfillmentStatus;
+    await existing.save();
+
+    // Only send email if status actually changed
+    if (oldStatus !== fulfillmentStatus) {
+      sendOrderStatusUpdate(existing, fulfillmentStatus);
+    }
+
+    res.json({ success: true, order: existing });
   } catch (err) {
     next(err);
   }

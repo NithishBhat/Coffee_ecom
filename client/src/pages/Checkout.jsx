@@ -15,16 +15,61 @@ const INDIAN_STATES = [
   'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
 ];
 
+const EMAIL_TYPOS = {
+  'gmial.com': 'gmail.com',
+  'gmai.com': 'gmail.com',
+  'gamil.com': 'gmail.com',
+  'gnail.com': 'gmail.com',
+  'gmaill.com': 'gmail.com',
+  'yaho.com': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'yahu.com': 'yahoo.com',
+  'outlok.com': 'outlook.com',
+  'outllok.com': 'outlook.com',
+  'outlool.com': 'outlook.com',
+  'hotmal.com': 'hotmail.com',
+  'hotmial.com': 'hotmail.com',
+  'hotamil.com': 'hotmail.com',
+  'redifmail.com': 'rediffmail.com',
+  'reddifmail.com': 'rediffmail.com',
+};
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, subtotal, deliveryFee, totalAmount, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
+  const [emailWarning, setEmailWarning] = useState('');
   const [form, setForm] = useState({
     name: '', email: '', phone: '',
     street: '', city: '', state: '', pincode: '',
   });
 
-  const update = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const checkEmailTypo = (email) => {
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (domain && EMAIL_TYPOS[domain]) {
+      setEmailWarning(`Did you mean ${email.split('@')[0]}@${EMAIL_TYPOS[domain]}?`);
+    } else {
+      setEmailWarning('');
+    }
+  };
+
+  const update = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+    if (name === 'email') {
+      checkEmailTypo(value);
+    }
+  };
+
+  const fixEmail = () => {
+    const domain = form.email.split('@')[1]?.toLowerCase();
+    const corrected = EMAIL_TYPOS[domain];
+    if (corrected) {
+      const fixed = form.email.split('@')[0] + '@' + corrected;
+      setForm({ ...form, email: fixed });
+      setEmailWarning('');
+    }
+  };
 
   const validate = () => {
     if (!form.name.trim()) return 'Name is required';
@@ -121,7 +166,14 @@ export default function Checkout() {
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input name="name" value={form.name} onChange={update} placeholder="Full Name" className={inputClass} />
-                <input name="email" value={form.email} onChange={update} placeholder="Email" type="email" className={inputClass} />
+                <div>
+                  <input name="email" value={form.email} onChange={update} placeholder="Email" type="email" className={inputClass} />
+                  {emailWarning && (
+                    <button type="button" onClick={fixEmail} className="mt-1.5 text-xs text-amber-600 hover:text-amber-800 transition-colors">
+                      {emailWarning} <span className="underline font-semibold">Click to fix</span>
+                    </button>
+                  )}
+                </div>
               </div>
               <input name="phone" value={form.phone} onChange={update} placeholder="Phone (10 digits)" className={inputClass} />
             </div>
