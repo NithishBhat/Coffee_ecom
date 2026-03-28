@@ -137,19 +137,23 @@ router.post('/verify', async (req, res, next) => {
 router.get('/track-by-phone', async (req, res, next) => {
   try {
     const { phone } = req.query;
+    console.log('[track-by-phone] query:', req.query);
     if (!phone) {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
     const phone10 = phone.replace(/^\+?91/, '').slice(-10);
-    const orders = await Order.find({
+    const query = {
       $or: [
         { 'customer.phone': phone10 },
         { 'customer.phone': `+91${phone10}` },
         { 'customer.phone': `91${phone10}` },
       ],
-    })
+    };
+    console.log('[track-by-phone] db query:', JSON.stringify(query));
+    const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .select('orderId createdAt totalAmount fulfillmentStatus');
+    console.log('[track-by-phone] found:', orders.length, 'orders');
     res.json({ success: true, orders });
   } catch (err) {
     next(err);
@@ -160,19 +164,23 @@ router.get('/track-by-phone', async (req, res, next) => {
 router.get('/track', async (req, res, next) => {
   try {
     const { orderId, phone } = req.query;
+    console.log('[track] query:', req.query);
     if (!orderId || !phone) {
       return res.status(400).json({ success: false, message: 'Order ID and phone number are required' });
     }
     // Normalize to last 10 digits to handle +91/91 prefix variations
     const phone10 = phone.replace(/^\+?91/, '').slice(-10);
-    const order = await Order.findOne({
+    const query = {
       orderId: orderId.trim(),
       $or: [
         { 'customer.phone': phone10 },
         { 'customer.phone': `+91${phone10}` },
         { 'customer.phone': `91${phone10}` },
       ],
-    });
+    };
+    console.log('[track] db query:', JSON.stringify(query));
+    const order = await Order.findOne(query);
+    console.log('[track] found:', order ? order.orderId : 'null');
     if (!order) {
       return res.status(404).json({ success: false, message: 'No order found matching that ID and phone number' });
     }
