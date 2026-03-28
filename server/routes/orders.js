@@ -133,6 +133,23 @@ router.post('/verify', async (req, res, next) => {
   }
 });
 
+// GET /api/orders/track — public tracking by orderId + phone
+router.get('/track', async (req, res, next) => {
+  try {
+    const { orderId, phone } = req.query;
+    if (!orderId || !phone) {
+      return res.status(400).json({ success: false, message: 'Order ID and phone number are required' });
+    }
+    const order = await Order.findOne({ orderId, 'customer.phone': phone });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'No order found matching that ID and phone number' });
+    }
+    res.json({ success: true, order });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/orders/:id — get order details
 router.get('/:id', async (req, res, next) => {
   try {
