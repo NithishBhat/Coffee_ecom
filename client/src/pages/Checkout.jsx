@@ -74,7 +74,6 @@ export default function Checkout() {
               razorpay_signature: response.razorpay_signature,
               orderId: data.orderId,
             });
-            clearCart();
             navigate(`/order/${data.orderId}`);
           } catch {
             toast.error('Payment verification failed. Contact support.');
