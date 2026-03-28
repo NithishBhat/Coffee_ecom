@@ -156,7 +156,7 @@ export default function OrderConfirmation() {
           <FiMessageCircle /> Share on WhatsApp
         </a>
         <Link
-          to="/track"
+          to={`/track?orderId=${encodeURIComponent(order.orderId)}&phone=${encodeURIComponent(order.customer.phone)}`}
           className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
         >
           Track Order

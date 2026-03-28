@@ -133,6 +133,29 @@ router.post('/verify', async (req, res, next) => {
   }
 });
 
+// GET /api/orders/track-by-phone — summary list of orders for a phone number
+router.get('/track-by-phone', async (req, res, next) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required' });
+    }
+    const phone10 = phone.replace(/^\+?91/, '').slice(-10);
+    const orders = await Order.find({
+      $or: [
+        { 'customer.phone': phone10 },
+        { 'customer.phone': `+91${phone10}` },
+        { 'customer.phone': `91${phone10}` },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .select('orderId createdAt totalAmount fulfillmentStatus');
+    res.json({ success: true, orders });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/orders/track — public tracking by orderId + phone
 router.get('/track', async (req, res, next) => {
   try {

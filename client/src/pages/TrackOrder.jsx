@@ -1,11 +1,18 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FiSearch, FiPackage } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { FiSearch, FiPackage, FiEye } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 const STEPS = ['Pending', 'Processing', 'Shipped', 'Delivered'];
 const STEP_MAP = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
+
+const STATUS_COLORS = {
+  pending: 'text-yellow-600 bg-yellow-50',
+  processing: 'text-blue-600 bg-blue-50',
+  shipped: 'text-purple-600 bg-purple-50',
+  delivered: 'text-green-600 bg-green-50',
+};
 
 const PAYMENT_COLORS = {
   pending: 'text-yellow-600 bg-yellow-50',
@@ -14,21 +21,24 @@ const PAYMENT_COLORS = {
 };
 
 export default function TrackOrder() {
-  const [orderId, setOrderId] = useState('');
-  const [phone, setPhone] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [orderId, setOrderId] = useState(searchParams.get('orderId') || '');
+  const [phone, setPhone] = useState(
+    searchParams.get('phone') || localStorage.getItem('customerPhone') || ''
+  );
   const [order, setOrder] = useState(null);
+  const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const handleTrack = async (e) => {
-    e.preventDefault();
-    if (!orderId.trim()) return toast.error('Enter your Order ID');
-    if (!/^\d{10}$/.test(phone)) return toast.error('Enter a valid 10-digit phone number');
-
+  const fetchFullOrder = useCallback(async (oid, ph) => {
     setLoading(true);
     setOrder(null);
+    setOrders(null);
     try {
-      const { data } = await api.get(`/orders/track?orderId=${encodeURIComponent(orderId.trim())}&phone=${phone}`);
+      const { data } = await api.get(
+        `/orders/track?orderId=${encodeURIComponent(oid.trim())}&phone=${encodeURIComponent(ph)}`
+      );
       setOrder(data.order);
     } catch {
       toast.error('No order found. Check your Order ID and phone number.');
@@ -36,25 +46,79 @@ export default function TrackOrder() {
       setLoading(false);
       setSearched(true);
     }
+  }, []);
+
+  const fetchOrdersByPhone = useCallback(async (ph) => {
+    setLoading(true);
+    setOrder(null);
+    setOrders(null);
+    try {
+      const { data } = await api.get(
+        `/orders/track-by-phone?phone=${encodeURIComponent(ph)}`
+      );
+      setOrders(data.orders);
+      if (data.orders.length === 0) {
+        toast.error('No orders found for this phone number.');
+      }
+    } catch {
+      toast.error('Could not look up orders.');
+    } finally {
+      setLoading(false);
+      setSearched(true);
+    }
+  }, []);
+
+  // Auto-search on mount if URL has params
+  useEffect(() => {
+    const urlOrderId = searchParams.get('orderId');
+    const urlPhone = searchParams.get('phone');
+    if (urlOrderId && urlPhone) {
+      fetchFullOrder(urlOrderId, urlPhone);
+    } else if (urlPhone) {
+      fetchOrdersByPhone(urlPhone);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!/^\d{10}$/.test(phone)) return toast.error('Enter a valid 10-digit phone number');
+
+    if (orderId.trim()) {
+      setSearchParams({ orderId: orderId.trim(), phone });
+      fetchFullOrder(orderId, phone);
+    } else {
+      setSearchParams({ phone });
+      fetchOrdersByPhone(phone);
+    }
+  };
+
+  const viewDetails = (oid) => {
+    setOrderId(oid);
+    setSearchParams({ orderId: oid, phone });
+    fetchFullOrder(oid, phone);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const currentStep = order ? (STEP_MAP[order.fulfillmentStatus] ?? 0) : 0;
-  const inputClass = 'w-full px-4 py-3 rounded-xl border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent text-sm';
+  const inputClass =
+    'w-full px-4 py-3 rounded-xl border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent text-sm';
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="text-center mb-8">
         <FiPackage className="mx-auto text-coffee-500 mb-4" size={48} />
         <h1 className="font-display text-3xl font-bold text-coffee-800 mb-2">Track Your Order</h1>
-        <p className="text-coffee-500">Enter your Order ID and phone number to check status</p>
+        <p className="text-coffee-500">
+          Enter phone number to see all orders, or add Order ID for full details
+        </p>
       </div>
 
-      <form onSubmit={handleTrack} className="bg-white rounded-xl shadow-sm p-6 mb-8">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 mb-8">
         <div className="flex flex-col gap-4">
           <input
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
-            placeholder="Order ID (e.g. ORD-1001)"
+            placeholder="Order ID (optional, e.g. ORD-1001)"
             className={inputClass}
           />
           <input
@@ -76,19 +140,73 @@ export default function TrackOrder() {
         </div>
       </form>
 
-      {searched && !order && !loading && (
+      {/* No results */}
+      {searched && !order && !orders?.length && !loading && (
         <div className="text-center py-8 bg-white rounded-xl shadow-sm">
-          <p className="text-coffee-500">No order found. Double-check your Order ID and phone number.</p>
+          <p className="text-coffee-500">No orders found. Double-check your details.</p>
         </div>
       )}
 
+      {/* Order summary list (phone-only search) */}
+      {orders && orders.length > 0 && !order && (
+        <div className="space-y-3">
+          <h2 className="font-semibold text-coffee-800 text-lg">Your Orders</h2>
+          {orders.map((o) => (
+            <div
+              key={o.orderId}
+              className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3"
+            >
+              <span className="font-semibold text-coffee-800 text-sm">{o.orderId}</span>
+              <span className="text-xs text-coffee-400">
+                {new Date(o.createdAt).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </span>
+              <span className="text-sm font-semibold text-coffee-700">
+                ₹{o.totalAmount.toLocaleString('en-IN')}
+              </span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_COLORS[o.fulfillmentStatus]}`}
+              >
+                {o.fulfillmentStatus}
+              </span>
+              <button
+                onClick={() => viewDetails(o.orderId)}
+                className="ml-auto flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 font-medium transition-colors"
+              >
+                <FiEye size={15} /> View Details
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Full order details (orderId + phone search) */}
       {order && (
         <div className="space-y-6">
+          {/* Back to list */}
+          {orders && orders.length > 1 && (
+            <button
+              onClick={() => {
+                setOrder(null);
+                setOrderId('');
+                setSearchParams({ phone });
+              }}
+              className="text-sm text-coffee-500 hover:text-coffee-700 transition-colors"
+            >
+              &larr; Back to all orders
+            </button>
+          )}
+
           {/* Fulfillment Progress */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-coffee-800">Order {order.orderId}</h2>
-              <span className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${PAYMENT_COLORS[order.paymentStatus]}`}>
+              <span
+                className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${PAYMENT_COLORS[order.paymentStatus]}`}
+              >
                 {order.paymentStatus}
               </span>
             </div>
@@ -100,14 +218,18 @@ export default function TrackOrder() {
               />
               {STEPS.map((step, i) => (
                 <div key={step} className="relative flex flex-col items-center z-10">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                    i <= currentStep
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'bg-white border-coffee-200 text-coffee-400'
-                  }`}>
-                    {i < currentStep ? '✓' : i + 1}
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                      i <= currentStep
+                        ? 'bg-green-500 border-green-500 text-white'
+                        : 'bg-white border-coffee-200 text-coffee-400'
+                    }`}
+                  >
+                    {i < currentStep ? '\u2713' : i + 1}
                   </div>
-                  <span className={`text-xs mt-2 ${i <= currentStep ? 'text-green-600 font-semibold' : 'text-coffee-400'}`}>
+                  <span
+                    className={`text-xs mt-2 ${i <= currentStep ? 'text-green-600 font-semibold' : 'text-coffee-400'}`}
+                  >
                     {step}
                   </span>
                 </div>
@@ -121,7 +243,9 @@ export default function TrackOrder() {
             <div className="space-y-3">
               {order.items.map((item, i) => (
                 <div key={i} className="flex justify-between text-sm text-coffee-600">
-                  <span>{item.name} x{item.quantity}</span>
+                  <span>
+                    {item.name} x{item.quantity}
+                  </span>
                   <span>₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                 </div>
               ))}
@@ -145,9 +269,13 @@ export default function TrackOrder() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h2 className="font-semibold text-coffee-800 mb-3">Delivery Address</h2>
             <p className="text-sm text-coffee-600">
-              {order.customer.name}<br />
-              {order.customer.address.street}<br />
-              {order.customer.address.city}, {order.customer.address.state} — {order.customer.address.pincode}<br />
+              {order.customer.name}
+              <br />
+              {order.customer.address.street}
+              <br />
+              {order.customer.address.city}, {order.customer.address.state} —{' '}
+              {order.customer.address.pincode}
+              <br />
               Phone: {order.customer.phone}
             </p>
           </div>
