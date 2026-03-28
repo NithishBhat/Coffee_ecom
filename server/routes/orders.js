@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const { sendOrderConfirmation } = require('../utils/emailTemplates');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -126,6 +127,9 @@ router.post('/verify', async (req, res, next) => {
         $inc: { stockQuantity: -item.quantity },
       });
     }
+
+    // Send order confirmation email (non-blocking)
+    sendOrderConfirmation(order);
 
     res.json({ success: true, orderId: order.orderId });
   } catch (err) {
