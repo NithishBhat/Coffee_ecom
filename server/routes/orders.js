@@ -1,0 +1,149 @@
+const router = require('express').Router();
+const crypto = require('crypto');
+const Razorpay = require('razorpay');
+const Order = require('../models/Order');
+const Product = require('../models/Product');
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
+// POST /api/orders/create — create Razorpay order
+router.post('/create', async (req, res, next) => {
+  try {
+    const { customer, items } = req.body;
+
+    // Validate required fields
+    if (!customer?.name || !customer?.email || !customer?.phone) {
+      return res.status(400).json({ success: false, message: 'Customer details required' });
+    }
+    if (!customer?.address?.street || !customer?.address?.city || !customer?.address?.state || !customer?.address?.pincode) {
+      return res.status(400).json({ success: false, message: 'Complete address required' });
+    }
+    if (!items || !items.length) {
+      return res.status(400).json({ success: false, message: 'Cart is empty' });
+    }
+
+    // Re-fetch prices from DB to prevent manipulation
+    const productIds = items.map((i) => i.productId);
+    const products = await Product.find({ _id: { $in: productIds }, isActive: true });
+
+    if (products.length !== items.length) {
+      return res.status(400).json({ success: false, message: 'Some products are unavailable' });
+    }
+
+    const orderItems = [];
+    let subtotal = 0;
+
+    for (const item of items) {
+      const product = products.find((p) => p._id.toString() === item.productId);
+      if (!product) {
+        return res.status(400).json({ success: false, message: `Product ${item.productId} not found` });
+      }
+      if (product.stockQuantity < item.quantity) {
+        return res.status(400).json({ success: false, message: `${product.name} has only ${product.stockQuantity} units in stock` });
+      }
+      orderItems.push({
+        productId: product._id,
+        name: product.name,
+        price: product.price,
+        quantity: item.quantity,
+        weight: product.weight,
+      });
+      subtotal += product.price * item.quantity;
+    }
+
+    const deliveryFee = subtotal >= 500 ? 0 : 50;
+    const totalAmount = subtotal + deliveryFee;
+
+    // Create Razorpay order
+    const razorpayOrder = await razorpay.orders.create({
+      amount: totalAmount * 100, // paise
+      currency: 'INR',
+      receipt: `rcpt_${Date.now()}`,
+    });
+
+    // Save order to DB
+    const orderId = await Order.getNextOrderId();
+    const order = await Order.create({
+      orderId,
+      customer,
+      items: orderItems,
+      subtotal,
+      deliveryFee,
+      totalAmount,
+      razorpayOrderId: razorpayOrder.id,
+    });
+
+    res.json({
+      success: true,
+      orderId: order.orderId,
+      razorpayOrderId: razorpayOrder.id,
+      amount: totalAmount * 100,
+      currency: 'INR',
+      keyId: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/orders/verify — verify Razorpay payment
+router.post('/verify', async (req, res, next) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+
+    // Verify signature
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      await Order.findOneAndUpdate({ orderId }, { paymentStatus: 'failed' });
+      return res.status(400).json({ success: false, message: 'Payment verification failed' });
+    }
+
+    // Update order
+    const order = await Order.findOneAndUpdate(
+      { orderId, paymentStatus: 'pending' },
+      {
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature,
+        paymentStatus: 'paid',
+      },
+      { new: true }
+    );
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found or already processed' });
+    }
+
+    // Decrement stock
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.productId, {
+        $inc: { stockQuantity: -item.quantity },
+      });
+    }
+
+    res.json({ success: true, orderId: order.orderId });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/orders/:id — get order details
+router.get('/:id', async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ orderId: req.params.id });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    res.json({ success: true, order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = router;

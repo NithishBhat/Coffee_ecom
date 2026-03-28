@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(npm install:*)",
+      "Bash(node seed.js)",
+      "Bash(curl -s https://api.ipify.org)",
+      "Bash(curl -s https://ifconfig.me)",
+      "Bash(npm create:*)",
+      "Bash(npx vite:*)",
+      "Bash(timeout 8 node server.js)",
+      "Bash(node -e \":*)",
+      "Bash(ls -la /c/Users/nithi/OneDrive/Desktop/Coffee/coffee-shop/server/*.js)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(tasklist //FI 'IMAGENAME eq node.exe')",
+      "Bash(netstat -ano)",
+      "Bash(grep -E \"\\\\.\\(jsx|tsx|js|ts\\)$\")",
+      "Bash(grep -E \"\\\\.\\(js|json\\)$\")",
+      "WebFetch(domain:images.unsplash.com)"
+    ]
+  }
+}
