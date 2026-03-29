@@ -26,6 +26,11 @@ router.post('/login', loginLimiter, (req, res) => {
 // All routes below require auth
 router.use(auth);
 
+// GET /api/admin/verify — validate token is still valid
+router.get('/verify', (req, res) => {
+  res.json({ success: true });
+});
+
 // GET /api/admin/products — list all products (including inactive)
 router.get('/products', async (req, res, next) => {
   try {
