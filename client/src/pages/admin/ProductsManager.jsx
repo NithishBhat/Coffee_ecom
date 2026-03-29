@@ -153,7 +153,25 @@ export default function ProductsManager() {
               <input name="name" value={form.name} onChange={update} placeholder="Product Name" className={inputClass} />
               <textarea name="description" value={form.description} onChange={update} placeholder="Description" rows={3} className={inputClass} />
               <div className="grid grid-cols-2 gap-3">
-                <input name="price" value={form.price} onChange={update} placeholder="Price (₹)" type="number" className={inputClass} />
+                <div>
+                  <input name="price" value={form.price} onChange={update} placeholder="Selling Price (₹, incl. GST)" type="number" className={inputClass} />
+                  {Number(form.price) > 0 && (
+                    <div className="mt-1.5 bg-coffee-50 rounded-lg px-3 py-2 text-xs text-coffee-600 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>Base Price</span>
+                        <span>₹{Math.round((Number(form.price) / 1.05) * 100 / 100).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>GST @ 5%</span>
+                        <span>₹{(Number(form.price) - Math.round((Number(form.price) / 1.05) * 100) / 100).toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-coffee-800 pt-0.5 border-t border-coffee-200">
+                        <span>Customer pays</span>
+                        <span>₹{Number(form.price).toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <input name="weight" value={form.weight} onChange={update} placeholder="Weight (e.g. 250g)" className={inputClass} />
               </div>
               <div className="grid grid-cols-2 gap-3">

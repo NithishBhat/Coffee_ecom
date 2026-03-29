@@ -35,7 +35,7 @@ coffee-shop/
 │       │   └── CartContext.jsx        # Cart state via useReducer, persisted to localStorage
 │       ├── components/
 │       │   ├── Navbar.jsx             # Public nav: Home, Shop, Track Order, Cart (mobile responsive)
-│       │   ├── AdminNavbar.jsx        # Admin nav: Dashboard, Products, Orders, Reviews, View Store, Logout
+│       │   ├── AdminNavbar.jsx        # Admin nav: Dashboard, Products, Orders, Customers, Reviews, View Store, Logout
 │       │   ├── Footer.jsx             # Site footer (hidden on admin pages)
 │       │   ├── ProductCard.jsx        # Product grid card with rating stars, low stock warning, add-to-cart
 │       │   ├── CartItem.jsx           # Single cart item row with quantity controls
@@ -53,8 +53,9 @@ coffee-shop/
 │       │   └── admin/
 │       │       ├── Login.jsx          # Admin password login
 │       │       ├── Dashboard.jsx      # Analytics: stat cards, revenue chart, top products, low stock alert (no manage links — navbar handles nav)
-│       │       ├── ProductsManager.jsx # Product CRUD table with modal form, low stock highlighting
+│       │       ├── ProductsManager.jsx # Product CRUD table with modal form (GST breakup preview), low stock highlighting
 │       │       ├── OrdersManager.jsx  # Orders with tabs, time/month filters, search, date range picker, CSV export
+│       │       ├── CustomersManager.jsx # Customer table aggregated from orders, expandable order history, search
 │       │       └── ReviewsManager.jsx # All reviews with delete moderation
 │       └── utils/
 │           └── api.js                 # Axios instance: baseURL from VITE_API_URL, JWT interceptor, global 401 redirect
@@ -129,11 +130,12 @@ coffee-shop/
 1. Login with password → JWT stored in localStorage (24h expiry)
 2. Every admin page load: `AdminRoute` validates token server-side via `GET /api/admin/verify`. If invalid/expired → redirect to login. Shows spinner while checking.
 3. Global 401 interceptor in `api.js` catches expired tokens mid-session → clears token, redirects to login
-4. **Separate admin navbar** (`AdminNavbar`): Dashboard/Products/Orders/Reviews links, "View Store" (opens public site in new tab), Logout. Shown on all admin pages except login. Public navbar + footer hidden on admin pages.
-5. Dashboard: revenue stats (today/week/month), GST collected this month, avg order value, bar chart (last 7 days), top 5 products, low stock banner. No manage links — navbar handles navigation.
-6. Products: CRUD table, modal form, low stock rows highlighted orange
+4. **Separate admin navbar** (`AdminNavbar`): Dashboard/Products/Orders/Customers/Reviews links, "View Store" (opens public site in new tab), Logout. Shown on all admin pages except login. Public navbar + footer hidden on admin pages.
+5. Dashboard: revenue stats (today/week/month), customer count, GST collected this month, avg order value, bar chart (last 7 days), top 5 products, low stock banner. No manage links — navbar handles navigation.
+6. Products: CRUD table, modal form with live GST breakup preview (base price + GST 5% calculated from selling price), low stock rows highlighted orange
 7. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), month dropdown filter, search by order ID/name/phone, compact rows, CSV export. Month filter resets when switching tabs.
-8. Reviews: list all with product name, delete moderation
+8. Customers: table of unique customers aggregated from orders (name, phone, email, order count, total spent, last order date). Expandable rows show full order history. Search by name/phone/email (server-side). No separate Customer model — all data from Order aggregation.
+9. Reviews: list all with product name, delete moderation
 9. Status update sends email only if status actually changed (old vs new comparison)
 
 ### Email Notifications
@@ -175,8 +177,9 @@ coffee-shop/
 | PUT | `/api/admin/orders/:id` | Update fulfillment status (triggers email if changed) |
 | GET | `/api/admin/reviews` | All reviews (populated with product name) |
 | DELETE | `/api/admin/reviews/:id` | Delete review |
+| GET | `/api/admin/customers` | Unique customers aggregated from orders (supports `?search=`) |
 | GET | `/api/admin/low-stock` | Products where stock <= threshold |
-| GET | `/api/admin/stats` | Analytics: period stats, daily chart, top products, avg order value, GST collected this month |
+| GET | `/api/admin/stats` | Analytics: period stats, daily chart, top products, avg order value, customer count, GST collected this month |
 
 ## Key Patterns
 
@@ -190,7 +193,7 @@ coffee-shop/
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
 - **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
 - **Admin UI**: `App.jsx` uses `useLocation` to swap navbars — `AdminNavbar` on admin pages (except login), public `Navbar` elsewhere. Footer hidden on admin pages. Admin pages have no back-arrow links; the admin navbar handles all navigation. Orders page has time filters, month dropdown, and search that all combine with tab filtering. Customer TrackOrder page also has a month filter dropdown for the order list view.
-- **GST compliance**: All product prices are GST-inclusive (5%, HSN 0901). On payment verification, `gstBreakdown` is calculated and stored on the order: base price = subtotal / 1.05, then CGST 2.5% + SGST 2.5% if customer state is Karnataka (intra-state), or IGST 5% if different state (inter-state). Invoice page at `/invoice/:orderId` shows full tax invoice with per-line HSN breakup, printable via `window.print()`. GSTIN placeholder "XXXXXXXXXXXX" in invoice header. "(incl. GST)" labels shown on product cards, detail page, cart, and checkout. Admin dashboard shows GST collected this month.
+- **GST compliance**: All product prices are GST-inclusive (5%, HSN 0901). Admin enters one selling price and sees live GST breakup (base price + 5% GST) in the product form — display only, no extra fields. On payment verification, `gstBreakdown` is calculated and stored on the order: base price = subtotal / 1.05, then CGST 2.5% + SGST 2.5% if customer state is Karnataka (intra-state), or IGST 5% if different state (inter-state). Invoice page at `/invoice/:orderId` shows full tax invoice with per-line HSN breakup, printable via `window.print()`. GSTIN placeholder "XXXXXXXXXXXX" in invoice header. "(incl. GST)" labels shown on product cards, detail page, cart, and checkout. Admin dashboard shows GST collected this month.
 - **Server static files**: Only served if `client/dist/` exists (checked with `fs.existsSync`), otherwise returns API health JSON at `/`
 
 ## Deployment
