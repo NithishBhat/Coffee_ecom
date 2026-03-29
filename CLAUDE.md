@@ -46,13 +46,13 @@ coffee-shop/
 │       │   ├── Products.jsx           # Product grid with roast type filter tabs
 │       │   ├── ProductDetail.jsx      # Single product + reviews section
 │       │   ├── Cart.jsx               # Cart page with items, totals, checkout button
-│       │   ├── Checkout.jsx           # Contact + address form, Razorpay integration
-│       │   ├── OrderConfirmation.jsx  # Post-payment: order details, status tracker, invoice link, WhatsApp share
+│       │   ├── Checkout.jsx           # Contact + address form, Razorpay integration, refund modal on stock-out after payment
+│       │   ├── OrderConfirmation.jsx  # Post-payment: order details, status tracker (or refund banner if refunded), invoice link, WhatsApp share
 │       │   ├── TrackOrder.jsx         # Order tracking by orderId + phone (both required), shows full details + invoice
 │       │   ├── Invoice.jsx            # GST tax invoice page with print/download, per-line HSN/tax breakup
 │       │   └── admin/
 │       │       ├── Login.jsx          # Admin password login
-│       │       ├── Dashboard.jsx      # Analytics: line chart (day/month/year toggle), stat cards, top products, low stock alert
+│       │       ├── Dashboard.jsx      # Analytics: line chart (day/month/year toggle), stat cards, recent orders, top products, low stock alert
 │       │       ├── ProductsManager.jsx # Product CRUD table with modal form (GST breakup preview), low stock highlighting
 │       │       ├── OrdersManager.jsx  # Orders with tabs, time/month filters, search, date range picker, CSV export
 │       │       ├── CustomersManager.jsx # Customer table aggregated from orders, expandable order history, search
@@ -118,8 +118,8 @@ coffee-shop/
    - **If stock ran out after payment**: rolls back successful decrements, initiates Razorpay refund (`razorpay.payments.refund`), sets `paymentStatus: 'refunded'` with `refundReason`, returns error to frontend
    - If stock OK: checks low stock alerts, sends confirmation email with GST breakup + invoice link
 5. Phone saved to localStorage, redirects to `/order/:orderId`
-6. OrderConfirmation page loads order, clears cart, shows status tracker, download invoice button
-7. **Frontend handles failures**: stock check errors show toast asking to update cart; refund errors show detailed message with refund timeline
+6. OrderConfirmation page loads order, clears cart, shows status tracker, download invoice button. If order is refunded, shows refund banner (reason, payment ID, 5-7 day timeline) instead of progress tracker, and hides invoice/WhatsApp actions.
+7. **Frontend handles failures**: stock check errors show toast asking to update cart; refund after payment shows a persistent modal (not a toast) with refund reason and timeline — user must click "OK" which removes the out-of-stock item from cart and redirects to `/cart`
 
 ### Order Tracking
 - **Order ID + Phone**: `GET /api/orders/track` — requires both `orderId` and `phone`. Returns full order details with "Download Invoice" button for paid orders. Order ID is the primary lookup; phone is the verification factor.
@@ -130,7 +130,7 @@ coffee-shop/
 2. Every admin page load: `AdminRoute` validates token server-side via `GET /api/admin/verify`. If invalid/expired → redirect to login. Shows spinner while checking.
 3. Global 401 interceptor in `api.js` catches expired tokens mid-session → clears token, redirects to login
 4. **Separate admin navbar** (`AdminNavbar`): Dashboard/Products/Orders/Customers/Reviews links, "View Store" (opens public site in new tab), Logout. Shown on all admin pages except login. Public navbar + footer hidden on admin pages.
-5. Dashboard: revenue line chart at top with Day/Month/Year toggle (7 days, 12 months, 3 years), stat cards (today/week/month revenue, avg order value, customer count, GST this month), top 5 products, low stock banner. No manage links — navbar handles navigation.
+5. Dashboard: revenue line chart at top with Day/Month/Year toggle (7 days, 12 months, 3 years), stat cards (today/week/month revenue, avg order value, customer count, GST this month), recent orders (5 most recent paid, clickable rows → Orders page), top 5 products, low stock banner (0-stock items shown in red). All stats exclude refunded orders. No manage links — navbar handles navigation.
 6. Products: CRUD table, modal form with live GST breakup preview (base price + GST 5% calculated from selling price), low stock rows highlighted orange
 7. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), month dropdown filter, search by order ID/name/phone, compact rows, CSV export. Month filter resets when switching tabs.
 8. Customers: table of unique customers aggregated from orders (name, phone, email, order count, total spent, last order date). Expandable rows show full order history. Search by name/phone/email (server-side). No separate Customer model — all data from Order aggregation.
@@ -177,7 +177,7 @@ coffee-shop/
 | DELETE | `/api/admin/reviews/:id` | Delete review |
 | GET | `/api/admin/customers` | Unique customers aggregated from orders (supports `?search=`) |
 | GET | `/api/admin/low-stock` | Products where stock <= threshold |
-| GET | `/api/admin/stats` | Analytics: period stats, daily/monthly/yearly charts, top products, avg order value, customer count, GST this month |
+| GET | `/api/admin/stats` | Analytics: period stats, daily/monthly/yearly charts, top products, recent orders, avg order value, customer count, GST this month (all paid-only, excludes refunded) |
 
 ## Key Patterns
 
@@ -187,6 +187,7 @@ coffee-shop/
 - **Phone normalization**: Tracking routes use `$or` to match phone as 10-digit, +91-prefixed, or 91-prefixed
 - **Order IDs**: Random alphanumeric `ORD-XXXXXX` (6 chars from A-Z/2-9, excludes 0/O/1/I). Uniqueness checked before save, `unique: true` index as safety net.
 - **Stock management**: Two-phase protection against overselling. Phase 1 (order create): checks all items have sufficient stock, returns detailed `stockErrors` array. Phase 2 (payment verify): atomic `findOneAndUpdate` with `{ stockQuantity: { $gte: qty } }` — if any fails, rolls back all decrements and auto-refunds via Razorpay API. Order gets `paymentStatus: 'refunded'` + `refundReason`. Frontend shows "Only X left!" (red) when stock <= 5, "Out of Stock" when 0.
+- **Refund UX**: Refunds after payment show a persistent modal in Checkout (not a toast) — user must acknowledge. TrackOrder and OrderConfirmation replace the fulfillment progress tracker with a refund banner (reason, payment ID, 5-7 day timeline) when `paymentStatus === 'refunded'`. OrderConfirmation hides invoice/WhatsApp actions for refunded orders.
 - **Low stock alerts**: `lowStockAlertSent` boolean on Product prevents duplicate emails. Resets when admin restocks above threshold.
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
 - **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
