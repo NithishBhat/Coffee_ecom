@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiSearch, FiPackage } from 'react-icons/fi';
+import { FiSearch, FiPackage, FiAlertTriangle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
@@ -110,42 +110,65 @@ export default function TrackOrder() {
       {/* Full order details */}
       {order && (
         <div className="space-y-6">
-          {/* Fulfillment Progress */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-semibold text-coffee-800">Order {order.orderId}</h2>
-              <span
-                className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${PAYMENT_COLORS[order.paymentStatus]}`}
-              >
-                {order.paymentStatus}
-              </span>
-            </div>
-            <div className="flex items-center justify-between relative">
-              <div className="absolute top-4 left-0 right-0 h-0.5 bg-coffee-100" />
-              <div
-                className="absolute top-4 left-0 h-0.5 bg-green-500 transition-all duration-500"
-                style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
-              />
-              {STEPS.map((step, i) => (
-                <div key={step} className="relative flex flex-col items-center z-10">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                      i <= currentStep
-                        ? 'bg-green-500 border-green-500 text-white'
-                        : 'bg-white border-coffee-200 text-coffee-400'
-                    }`}
-                  >
-                    {i < currentStep ? '\u2713' : i + 1}
-                  </div>
-                  <span
-                    className={`text-xs mt-2 ${i <= currentStep ? 'text-green-600 font-semibold' : 'text-coffee-400'}`}
-                  >
-                    {step}
-                  </span>
+          {/* Fulfillment Progress or Refund Banner */}
+          {order.paymentStatus === 'refunded' ? (
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-red-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-semibold text-coffee-800">Order {order.orderId}</h2>
+                <span className="text-xs px-3 py-1 rounded-full font-medium text-red-700 bg-red-100">
+                  Refunded
+                </span>
+              </div>
+              <div className="flex items-start gap-3 bg-red-50 rounded-lg p-4">
+                <FiAlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+                <div className="space-y-2 text-sm">
+                  {order.refundReason && (
+                    <p className="text-red-700 font-medium">{order.refundReason}</p>
+                  )}
+                  <p className="text-red-600">Refund will reflect in your account within 5-7 business days.</p>
+                  {order.razorpayPaymentId && (
+                    <p className="text-coffee-500 text-xs">Payment ID: {order.razorpayPaymentId}</p>
+                  )}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-coffee-800">Order {order.orderId}</h2>
+                <span
+                  className={`text-xs px-3 py-1 rounded-full capitalize font-medium ${PAYMENT_COLORS[order.paymentStatus]}`}
+                >
+                  {order.paymentStatus}
+                </span>
+              </div>
+              <div className="flex items-center justify-between relative">
+                <div className="absolute top-4 left-0 right-0 h-0.5 bg-coffee-100" />
+                <div
+                  className="absolute top-4 left-0 h-0.5 bg-green-500 transition-all duration-500"
+                  style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
+                />
+                {STEPS.map((step, i) => (
+                  <div key={step} className="relative flex flex-col items-center z-10">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                        i <= currentStep
+                          ? 'bg-green-500 border-green-500 text-white'
+                          : 'bg-white border-coffee-200 text-coffee-400'
+                      }`}
+                    >
+                      {i < currentStep ? '\u2713' : i + 1}
+                    </div>
+                    <span
+                      className={`text-xs mt-2 ${i <= currentStep ? 'text-green-600 font-semibold' : 'text-coffee-400'}`}
+                    >
+                      {step}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Items */}
           <div className="bg-white rounded-xl shadow-sm p-6">
