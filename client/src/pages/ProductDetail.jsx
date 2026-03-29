@@ -133,7 +133,7 @@ export default function ProductDetail() {
           )}
 
           <p className="text-coffee-400 mb-4">Origin: {product.origin}</p>
-          <p className="text-2xl font-bold text-coffee-700 mb-6">₹{product.price.toLocaleString('en-IN')}</p>
+          <p className="text-2xl font-bold text-coffee-700 mb-6">₹{product.price.toLocaleString('en-IN')} <span className="text-xs font-normal text-coffee-400">incl. GST</span></p>
 
           <p className="text-coffee-600 leading-relaxed mb-8">{product.description}</p>
 

@@ -76,7 +76,7 @@ export default function AdminDashboard() {
       {stats && (
         <>
           {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
             <div className="bg-white rounded-xl shadow-sm p-5">
               <FiDollarSign className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">Today</p>
@@ -100,6 +100,12 @@ export default function AdminDashboard() {
               <p className="text-xs text-coffee-400">Avg Order Value</p>
               <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
               <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <FiDollarSign className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">GST This Month</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
+              <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
             </div>
           </div>
 

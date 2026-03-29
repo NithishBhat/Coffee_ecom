@@ -217,6 +217,16 @@ export default function OrdersManager() {
               {order.razorpayPaymentId && (
                 <p className="text-[10px] text-coffee-400 mt-1">Payment ID: {order.razorpayPaymentId}</p>
               )}
+              {order.paymentStatus === 'paid' && (
+                <a
+                  href={`/invoice/${order.orderId}?phone=${encodeURIComponent(order.customer.phone)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block text-[11px] text-coffee-600 underline hover:text-coffee-800 mt-1.5"
+                >
+                  View Invoice
+                </a>
+              )}
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">

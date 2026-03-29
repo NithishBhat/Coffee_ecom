@@ -172,6 +172,7 @@ router.get('/stats', async (req, res, next) => {
       periodStats,
       dailyRevenue,
       topProducts,
+      gstMonth,
     ] = await Promise.all([
       // Period aggregation: total, today, week, month in one pipeline
       Order.aggregate([
@@ -227,6 +228,12 @@ router.get('/stats', async (req, res, next) => {
         { $limit: 5 },
         { $project: { _id: 0, name: '$_id', totalQty: 1, totalRevenue: 1 } },
       ]),
+
+      // GST collected this month
+      Order.aggregate([
+        { $match: { ...paid, createdAt: { $gte: monthStart }, 'gstBreakdown.gstAmount': { $exists: true } } },
+        { $group: { _id: null, totalGst: { $sum: '$gstBreakdown.gstAmount' } } },
+      ]),
     ]);
 
     const extract = (arr) => ({
@@ -265,6 +272,7 @@ router.get('/stats', async (req, res, next) => {
         week,
         month,
         avgOrderValue: total.orders > 0 ? Math.round(total.revenue / total.orders) : 0,
+        gstCollectedMonth: gstMonth[0]?.totalGst || 0,
         dailyChart,
         topProducts,
       },

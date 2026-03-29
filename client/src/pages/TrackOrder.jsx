@@ -30,7 +30,8 @@ export default function TrackOrder() {
   const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [monthFilter, setMonthFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(5);
 
   const fetchFullOrder = useCallback(async (oid, ph) => {
     setLoading(true);
@@ -58,7 +59,8 @@ export default function TrackOrder() {
         params: { phone: ph },
       });
       setOrders(data.orders);
-      setMonthFilter('all');
+      setTimeFilter('all');
+      setVisibleCount(5);
       if (data.orders.length === 0) {
         toast.error('No orders found for this phone number.');
       }
@@ -101,22 +103,22 @@ export default function TrackOrder() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Derive unique months from orders for the filter dropdown
-  const monthOptions = orders && orders.length > 0
-    ? [...new Map(orders.map((o) => {
-        const d = new Date(o.createdAt);
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
-        return [key, { key, label }];
-      })).values()]
-    : [];
-
-  const filteredOrders = orders && monthFilter !== 'all'
+  // Time-based filtering
+  const filteredOrders = orders
     ? orders.filter((o) => {
-        const d = new Date(o.createdAt);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === monthFilter;
+        if (timeFilter === 'all') return true;
+        const now = new Date();
+        const created = new Date(o.createdAt);
+        const days = { '7d': 7, '30d': 30, '90d': 90 }[timeFilter];
+        if (!days) return true;
+        const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
+        return created >= cutoff;
       })
-    : orders;
+    : null;
+
+  const totalFiltered = filteredOrders?.length || 0;
+  const visibleOrders = filteredOrders?.slice(0, visibleCount) || [];
+  const hasMore = visibleCount < totalFiltered;
 
   const currentStep = order ? (STEP_MAP[order.fulfillmentStatus] ?? 0) : 0;
   const inputClass =
@@ -169,55 +171,66 @@ export default function TrackOrder() {
       {/* Order summary list (phone-only search) */}
       {orders && orders.length > 0 && !order && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold text-coffee-800 text-lg">Your Orders</h2>
-            {monthOptions.length > 1 && (
-              <select
-                value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
-                className="text-sm px-3 py-1.5 rounded-lg border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 text-coffee-700"
-              >
-                <option value="all">All Orders ({orders.length})</option>
-                {monthOptions.map((m) => (
-                  <option key={m.key} value={m.key}>{m.label}</option>
-                ))}
-              </select>
-            )}
+            <select
+              value={timeFilter}
+              onChange={(e) => { setTimeFilter(e.target.value); setVisibleCount(5); }}
+              className="text-sm px-3 py-1.5 rounded-lg border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 text-coffee-700"
+            >
+              <option value="all">All</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 3 months</option>
+            </select>
           </div>
-          {filteredOrders.length === 0 ? (
+          <p className="text-xs text-coffee-400">
+            Showing {Math.min(visibleCount, totalFiltered)} of {totalFiltered} order{totalFiltered !== 1 ? 's' : ''}
+          </p>
+          {totalFiltered === 0 ? (
             <div className="text-center py-6 bg-white rounded-xl shadow-sm">
-              <p className="text-coffee-400 text-sm">No orders in this month</p>
+              <p className="text-coffee-400 text-sm">No orders in this period</p>
             </div>
           ) : (
-            filteredOrders.map((o) => (
-              <div
-                key={o.orderId}
-                className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3"
-              >
-                <span className="font-semibold text-coffee-800 text-sm">{o.orderId}</span>
-                <span className="text-xs text-coffee-400">
-                  {new Date(o.createdAt).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-                <span className="text-sm font-semibold text-coffee-700">
-                  ₹{o.totalAmount.toLocaleString('en-IN')}
-                </span>
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_COLORS[o.fulfillmentStatus]}`}
+            <>
+              {visibleOrders.map((o) => (
+                <div
+                  key={o.orderId}
+                  className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3"
                 >
-                  {o.fulfillmentStatus}
-                </span>
+                  <span className="font-semibold text-coffee-800 text-sm">{o.orderId}</span>
+                  <span className="text-xs text-coffee-400">
+                    {new Date(o.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span className="text-sm font-semibold text-coffee-700">
+                    ₹{o.totalAmount.toLocaleString('en-IN')}
+                  </span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_COLORS[o.fulfillmentStatus]}`}
+                  >
+                    {o.fulfillmentStatus}
+                  </span>
+                  <button
+                    onClick={() => viewDetails(o.orderId)}
+                    className="ml-auto flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 font-medium transition-colors"
+                  >
+                    <FiEye size={15} /> View Details
+                  </button>
+                </div>
+              ))}
+              {hasMore && (
                 <button
-                  onClick={() => viewDetails(o.orderId)}
-                  className="ml-auto flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 font-medium transition-colors"
+                  onClick={() => setVisibleCount((c) => c + 5)}
+                  className="w-full py-2.5 text-sm font-medium text-coffee-600 bg-white rounded-xl shadow-sm hover:bg-coffee-50 transition-colors"
                 >
-                  <FiEye size={15} /> View Details
+                  Show More
                 </button>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
       )}
@@ -319,12 +332,22 @@ export default function TrackOrder() {
             </p>
           </div>
 
-          <Link
-            to="/products"
-            className="block text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
-          >
-            Continue Shopping
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {order.paymentStatus === 'paid' && (
+              <Link
+                to={`/invoice/${order.orderId}?phone=${encodeURIComponent(phone)}`}
+                className="flex-1 text-center bg-coffee-600 hover:bg-coffee-700 text-white py-3 rounded-xl font-semibold transition-colors"
+              >
+                Download Invoice
+              </Link>
+            )}
+            <Link
+              to="/products"
+              className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
+            >
+              Continue Shopping
+            </Link>
+          </div>
         </div>
       )}
     </div>
