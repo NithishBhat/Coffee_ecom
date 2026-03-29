@@ -1,15 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FiDollarSign, FiTrendingUp, FiAlertTriangle, FiUsers } from 'react-icons/fi';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../utils/api';
 
 const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
+
+const CHART_PERIODS = [
+  { key: 'day', label: 'Day' },
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+];
+
+function formatLabel(date, period) {
+  if (period === 'year') return date;
+  if (period === 'month') {
+    const [y, m] = date.split('-');
+    return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+  }
+  return new Date(date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
+}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chartPeriod, setChartPeriod] = useState('day');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -21,7 +37,6 @@ export default function AdminDashboard() {
         setStats(statsRes.data.stats);
         setLowStock(lowStockRes.data.products);
       } catch {
-        // Individual fallbacks so one failure doesn't block the other
         try { const r = await api.get('/admin/stats'); setStats(r.data.stats); } catch {}
         try { const r = await api.get('/admin/low-stock'); setLowStock(r.data.products); } catch {}
       } finally {
@@ -31,23 +46,30 @@ export default function AdminDashboard() {
     fetchStats();
   }, []);
 
+  const chartData = useMemo(() => {
+    if (!stats) return [];
+    const src = chartPeriod === 'year' ? stats.yearlyChart
+      : chartPeriod === 'month' ? stats.monthlyChart
+      : stats.dailyChart;
+    return (src || []).map((d) => ({
+      ...d,
+      label: formatLabel(d.date, chartPeriod),
+    }));
+  }, [stats, chartPeriod]);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="font-display text-3xl font-bold text-coffee-800 mb-8">Dashboard</h1>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-pulse">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="bg-white rounded-xl shadow-sm p-6 h-72 mb-8 animate-pulse" />
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="bg-white rounded-xl shadow-sm p-6 h-28" />
           ))}
         </div>
       </div>
     );
   }
-
-  const chartData = (stats?.dailyChart || []).map((d) => ({
-    ...d,
-    label: new Date(d.date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' }),
-  }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -75,67 +97,90 @@ export default function AdminDashboard() {
 
       {stats && (
         <>
-          {/* Stat cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">Today</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.today.revenue)}</p>
-              <p className="text-xs text-coffee-400 mt-1">{stats.today.orders} orders</p>
+          {/* Revenue chart — top of dashboard */}
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-coffee-800">Revenue</h2>
+              <div className="flex gap-0.5 bg-coffee-100 rounded-lg p-0.5">
+                {CHART_PERIODS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setChartPeriod(p.key)}
+                    className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+                      chartPeriod === p.key
+                        ? 'bg-white text-coffee-800 shadow-sm'
+                        : 'text-coffee-500 hover:text-coffee-700'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">This Week</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.week.revenue)}</p>
-              <p className="text-xs text-coffee-400 mt-1">{stats.week.orders} orders</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">This Month</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.month.revenue)}</p>
-              <p className="text-xs text-coffee-400 mt-1">{stats.month.orders} orders</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiTrendingUp className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">Avg Order Value</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
-              <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiUsers className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">Customers</p>
-              <p className="text-xl font-bold text-coffee-800">{stats.totalCustomers}</p>
-              <p className="text-xs text-coffee-400 mt-1">unique buyers</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-              <p className="text-xs text-coffee-400">GST This Month</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
-              <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
-            </div>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={chartData}>
+                  <XAxis dataKey="label" tick={{ fill: '#A08D7D', fontSize: 12 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#A08D7D', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} />
+                  <Tooltip
+                    formatter={(value) => [fmt(value), 'Revenue']}
+                    labelStyle={{ color: '#3E2E1E', fontWeight: 600 }}
+                    contentStyle={{ borderRadius: 8, border: '1px solid #E8DDD3', fontSize: 13 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#6F4E37"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#6F4E37', r: 4 }}
+                    activeDot={{ r: 6, fill: '#6F4E37' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-coffee-400 text-sm py-12 text-center">No revenue data yet</p>
+            )}
           </div>
 
-          {/* Revenue chart + Top Products side by side */}
+          {/* Stat cards + Top Products */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-            {/* Bar chart — last 7 days */}
-            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-semibold text-coffee-800 mb-4">Daily Revenue (Last 7 Days)</h2>
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={chartData} barSize={32}>
-                    <XAxis dataKey="label" tick={{ fill: '#A08D7D', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#A08D7D', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
-                    <Tooltip
-                      formatter={(value) => [fmt(value), 'Revenue']}
-                      labelStyle={{ color: '#3E2E1E', fontWeight: 600 }}
-                      contentStyle={{ borderRadius: 8, border: '1px solid #E8DDD3' }}
-                    />
-                    <Bar dataKey="revenue" fill="#6F4E37" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <p className="text-coffee-400 text-sm py-12 text-center">No revenue data yet</p>
-              )}
+            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">Today</p>
+                <p className="text-xl font-bold text-coffee-800">{fmt(stats.today.revenue)}</p>
+                <p className="text-xs text-coffee-400 mt-1">{stats.today.orders} orders</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">This Week</p>
+                <p className="text-xl font-bold text-coffee-800">{fmt(stats.week.revenue)}</p>
+                <p className="text-xs text-coffee-400 mt-1">{stats.week.orders} orders</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">This Month</p>
+                <p className="text-xl font-bold text-coffee-800">{fmt(stats.month.revenue)}</p>
+                <p className="text-xs text-coffee-400 mt-1">{stats.month.orders} orders</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiTrendingUp className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">Avg Order Value</p>
+                <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
+                <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiUsers className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">Customers</p>
+                <p className="text-xl font-bold text-coffee-800">{stats.totalCustomers}</p>
+                <p className="text-xs text-coffee-400 mt-1">unique buyers</p>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm p-5">
+                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
+                <p className="text-xs text-coffee-400">GST This Month</p>
+                <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
+                <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
+              </div>
             </div>
 
             {/* Top Products */}
@@ -160,7 +205,6 @@ export default function AdminDashboard() {
           </div>
         </>
       )}
-
     </div>
   );
 }
