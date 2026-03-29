@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FiArrowLeft, FiTrash2, FiCheckCircle } from 'react-icons/fi';
+import { FiTrash2, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import StarRating from '../../components/StarRating';
@@ -32,7 +31,6 @@ export default function ReviewsManager() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
-        <Link to="/admin/dashboard" className="text-coffee-500 hover:text-coffee-700"><FiArrowLeft size={20} /></Link>
         <h1 className="font-display text-2xl font-bold text-coffee-800">Reviews</h1>
         <span className="text-sm text-coffee-400 ml-auto">{reviews.length} total</span>
       </div>

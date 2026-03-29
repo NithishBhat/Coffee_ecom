@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import AdminNavbar from './components/AdminNavbar';
 import Footer from './components/Footer';
 import AdminRoute from './components/AdminRoute';
 import Home from './pages/Home';
@@ -18,10 +19,11 @@ import AdminReviews from './pages/admin/ReviewsManager';
 export default function App() {
   const { pathname } = useLocation();
   const isAdmin = pathname.startsWith('/admin');
+  const isAdminLogin = pathname === '/admin/login' || pathname === '/admin';
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {isAdmin && !isAdminLogin ? <AdminNavbar /> : <Navbar />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
