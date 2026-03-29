@@ -27,6 +27,7 @@ export default function AdminNavbar() {
             <NavLink to="/admin/dashboard" end className={linkClass}>Dashboard</NavLink>
             <NavLink to="/admin/products" className={linkClass}>Products</NavLink>
             <NavLink to="/admin/orders" className={linkClass}>Orders</NavLink>
+            <NavLink to="/admin/customers" className={linkClass}>Customers</NavLink>
             <NavLink to="/admin/reviews" className={linkClass}>Reviews</NavLink>
           </div>
         </div>
@@ -61,6 +62,7 @@ export default function AdminNavbar() {
           <NavLink to="/admin/dashboard" end className="block text-coffee-200 hover:text-white text-sm" onClick={() => setOpen(false)}>Dashboard</NavLink>
           <NavLink to="/admin/products" className="block text-coffee-200 hover:text-white text-sm" onClick={() => setOpen(false)}>Products</NavLink>
           <NavLink to="/admin/orders" className="block text-coffee-200 hover:text-white text-sm" onClick={() => setOpen(false)}>Orders</NavLink>
+          <NavLink to="/admin/customers" className="block text-coffee-200 hover:text-white text-sm" onClick={() => setOpen(false)}>Customers</NavLink>
           <NavLink to="/admin/reviews" className="block text-coffee-200 hover:text-white text-sm" onClick={() => setOpen(false)}>Reviews</NavLink>
           <a href="/" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-coffee-200 hover:text-white text-sm">
             View Store <FiExternalLink size={13} />
