@@ -171,6 +171,8 @@ router.get('/stats', async (req, res, next) => {
     const [
       periodStats,
       dailyRevenue,
+      monthlyRevenue,
+      yearlyRevenue,
       topProducts,
       gstMonth,
       customerCount,
@@ -204,11 +206,32 @@ router.get('/stats', async (req, res, next) => {
         { $match: { ...paid, createdAt: { $gte: sevenDaysAgo } } },
         {
           $group: {
-            _id: {
-              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
-            },
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
             revenue: { $sum: '$totalAmount' },
-            orders: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Monthly revenue for last 12 months
+      Order.aggregate([
+        { $match: { ...paid, createdAt: { $gte: new Date(now.getFullYear() - 1, now.getMonth(), 1) } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            revenue: { $sum: '$totalAmount' },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ]),
+
+      // Yearly revenue for last 3 years
+      Order.aggregate([
+        { $match: { ...paid, createdAt: { $gte: new Date(now.getFullYear() - 2, 0, 1) } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y', date: '$createdAt' } },
+            revenue: { $sum: '$totalAmount' },
           },
         },
         { $sort: { _id: 1 } },
@@ -255,21 +278,34 @@ router.get('/stats', async (req, res, next) => {
     const week = extract(facets.week);
     const month = extract(facets.month);
 
-    // Fill in missing days for the chart
+    // Fill in missing days for daily chart
     const dailyMap = {};
-    for (const d of dailyRevenue) {
-      dailyMap[d._id] = d;
-    }
+    for (const d of dailyRevenue) dailyMap[d._id] = d;
     const dailyChart = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(todayStart);
       d.setDate(d.getDate() - i);
       const key = d.toISOString().slice(0, 10);
-      dailyChart.push({
-        date: key,
-        revenue: dailyMap[key]?.revenue || 0,
-        orders: dailyMap[key]?.orders || 0,
-      });
+      dailyChart.push({ date: key, revenue: dailyMap[key]?.revenue || 0 });
+    }
+
+    // Fill in missing months for monthly chart
+    const monthlyMap = {};
+    for (const m of monthlyRevenue) monthlyMap[m._id] = m;
+    const monthlyChart = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthlyChart.push({ date: key, revenue: monthlyMap[key]?.revenue || 0 });
+    }
+
+    // Fill in missing years for yearly chart
+    const yearlyMap = {};
+    for (const y of yearlyRevenue) yearlyMap[y._id] = y;
+    const yearlyChart = [];
+    for (let i = 2; i >= 0; i--) {
+      const key = String(now.getFullYear() - i);
+      yearlyChart.push({ date: key, revenue: yearlyMap[key]?.revenue || 0 });
     }
 
     res.json({
@@ -283,6 +319,8 @@ router.get('/stats', async (req, res, next) => {
         gstCollectedMonth: gstMonth[0]?.totalGst || 0,
         totalCustomers: customerCount[0]?.total || 0,
         dailyChart,
+        monthlyChart,
+        yearlyChart,
         topProducts,
       },
     });
