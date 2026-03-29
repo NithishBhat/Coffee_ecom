@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const { sendOrderConfirmation } = require('../utils/emailTemplates');
+const { sendOrderConfirmation, sendLowStockAlert } = require('../utils/emailTemplates');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -121,15 +121,30 @@ router.post('/verify', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found or already processed' });
     }
 
-    // Decrement stock
+    // Decrement stock and check low stock
+    const lowStockProducts = [];
     for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.productId, {
-        $inc: { stockQuantity: -item.quantity },
-      });
+      const product = await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stockQuantity: -item.quantity } },
+        { new: true }
+      );
+      if (
+        product &&
+        product.stockQuantity <= product.lowStockThreshold &&
+        !product.lowStockAlertSent
+      ) {
+        product.lowStockAlertSent = true;
+        await product.save();
+        lowStockProducts.push(product);
+      }
     }
 
-    // Send order confirmation email (non-blocking)
+    // Send emails (non-blocking)
     sendOrderConfirmation(order);
+    if (lowStockProducts.length > 0) {
+      sendLowStockAlert(lowStockProducts);
+    }
 
     res.json({ success: true, orderId: order.orderId });
   } catch (err) {

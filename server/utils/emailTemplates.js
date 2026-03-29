@@ -134,4 +134,24 @@ function sendOrderStatusUpdate(order, newStatus) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendOrderStatusUpdate };
+function sendLowStockAlert(products) {
+  const adminEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+  if (!adminEmail) return;
+  const rows = products
+    .map((p) => `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #F0EBE4;color:#5C4A3A;font-size:14px">${p.name}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #F0EBE4;color:#C53030;font-size:14px;font-weight:700;text-align:right">${p.stockQuantity} left</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #F0EBE4;color:#A08D7D;font-size:13px;text-align:right">threshold: ${p.lowStockThreshold}</td>
+    </tr>`)
+    .join('');
+  const body = `
+    <p style="margin:0 0 16px;color:#5C4A3A;font-size:14px">The following products are running low on stock and need to be restocked:</p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">${rows}</table>
+    <div style="text-align:center;margin:24px 0 8px">
+      <a href="${FRONTEND_URL}/admin/products" style="display:inline-block;background:#6F4E37;color:#FFFFFF;text-decoration:none;padding:12px 32px;border-radius:8px;font-weight:600;font-size:14px">Manage Products</a>
+    </div>`;
+  const html = buildEmail('Low Stock Alert', body);
+  sendEmail(adminEmail, `Low Stock Alert — ${products.length} product(s) need restocking`, html);
+}
+
+module.exports = { sendOrderConfirmation, sendOrderStatusUpdate, sendLowStockAlert };

@@ -13,6 +13,7 @@ import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/ProductsManager';
 import AdminOrders from './pages/admin/OrdersManager';
+import AdminReviews from './pages/admin/ReviewsManager';
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+          <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
           <Route path="*" element={
             <div className="flex flex-col items-center justify-center py-20">
               <h1 className="font-display text-4xl font-bold text-coffee-800 mb-4">404</h1>

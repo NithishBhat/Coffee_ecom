@@ -109,7 +109,7 @@ export default function ProductsManager() {
               </thead>
               <tbody className="divide-y divide-coffee-50">
                 {products.map((p) => (
-                  <tr key={p._id} className="hover:bg-coffee-50/50">
+                  <tr key={p._id} className={p.stockQuantity <= (p.lowStockThreshold ?? 10) ? 'bg-orange-50 hover:bg-orange-100/70' : 'hover:bg-coffee-50/50'}>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <img src={p.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
@@ -119,7 +119,7 @@ export default function ProductsManager() {
                     <td className="p-4 capitalize hidden sm:table-cell text-coffee-500">{p.roastType}</td>
                     <td className="p-4 text-coffee-700 font-semibold">₹{p.price}</td>
                     <td className="p-4 hidden md:table-cell">
-                      <span className={p.stockQuantity > 0 ? 'text-green-600' : 'text-red-500'}>
+                      <span className={p.stockQuantity <= (p.lowStockThreshold ?? 10) ? 'text-orange-600 font-bold' : p.stockQuantity > 0 ? 'text-green-600' : 'text-red-500'}>
                         {p.stockQuantity}
                       </span>
                     </td>

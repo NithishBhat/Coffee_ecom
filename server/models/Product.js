@@ -14,6 +14,8 @@ const productSchema = new mongoose.Schema(
     origin: { type: String, required: true },
     imageUrl: { type: String, required: true },
     stockQuantity: { type: Number, default: 0 },
+    lowStockThreshold: { type: Number, default: 10 },
+    lowStockAlertSent: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

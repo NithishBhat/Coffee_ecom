@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowLeft, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiArrowLeft, FiChevronDown, FiChevronUp, FiDownload } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -65,6 +65,38 @@ export default function OrdersManager() {
   }, [orders]);
 
   const filtered = grouped[tab] || [];
+
+  const exportCSV = (rows, filename) => {
+    if (rows.length === 0) return toast.error('No orders to export');
+    const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = ['Order ID', 'Date', 'Customer Name', 'Phone', 'Email', 'Items', 'Subtotal', 'Delivery Fee', 'Total', 'Payment Status', 'Fulfillment Status', 'Address'];
+    const csvRows = [header.join(',')];
+    for (const o of rows) {
+      const items = o.items.map((i) => `${i.name} x${i.quantity}`).join(', ');
+      const addr = `${o.customer.address.street}, ${o.customer.address.city}, ${o.customer.address.state} - ${o.customer.address.pincode}`;
+      csvRows.push([
+        escape(o.orderId),
+        escape(new Date(o.createdAt).toLocaleDateString('en-IN')),
+        escape(o.customer.name),
+        escape(o.customer.phone),
+        escape(o.customer.email),
+        escape(items),
+        o.subtotal,
+        o.deliveryFee,
+        o.totalAmount,
+        escape(o.paymentStatus),
+        escape(o.fulfillmentStatus),
+        escape(addr),
+      ].join(','));
+    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const renderOrder = (order) => (
     <div key={order._id} className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -145,10 +177,22 @@ export default function OrdersManager() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-6">
         <Link to="/admin/dashboard" className="text-coffee-500 hover:text-coffee-700"><FiArrowLeft size={20} /></Link>
         <h1 className="font-display text-2xl font-bold text-coffee-800">Orders</h1>
         <span className="text-sm text-coffee-400 ml-auto">{orders.length} total</span>
+        <button
+          onClick={() => exportCSV(filtered, `orders-${tab}-${new Date().toISOString().slice(0, 10)}.csv`)}
+          className="flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 border border-coffee-200 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <FiDownload size={14} /> Export CSV
+        </button>
+        <button
+          onClick={() => exportCSV(orders, `orders-all-${new Date().toISOString().slice(0, 10)}.csv`)}
+          className="flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 border border-coffee-200 px-3 py-1.5 rounded-lg transition-colors"
+        >
+          <FiDownload size={14} /> Export All
+        </button>
       </div>
 
       {/* Tabs */}
