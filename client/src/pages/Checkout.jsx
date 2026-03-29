@@ -89,20 +89,35 @@ export default function Checkout() {
 
     setLoading(true);
     try {
-      const { data } = await api.post('/orders/create', {
-        customer: {
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          address: {
-            street: form.street,
-            city: form.city,
-            state: form.state,
-            pincode: form.pincode,
+      let createRes;
+      try {
+        createRes = await api.post('/orders/create', {
+          customer: {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            address: {
+              street: form.street,
+              city: form.city,
+              state: form.state,
+              pincode: form.pincode,
+            },
           },
-        },
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-      });
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        });
+      } catch (err) {
+        // Check for stock errors with details
+        const errData = err.message;
+        if (errData.includes('insufficient stock')) {
+          toast.error('Some items in your cart are out of stock. Please update your cart and try again.', { duration: 5000 });
+        } else {
+          toast.error(errData);
+        }
+        setLoading(false);
+        return;
+      }
+
+      const { data } = createRes;
 
       const options = {
         key: data.keyId,
@@ -121,8 +136,12 @@ export default function Checkout() {
             });
             localStorage.setItem('customerPhone', form.phone);
             navigate(`/order/${data.orderId}`);
-          } catch {
-            toast.error('Payment verification failed. Contact support.');
+          } catch (verifyErr) {
+            if (verifyErr.message.includes('refunded')) {
+              toast.error(verifyErr.message, { duration: 8000 });
+            } else {
+              toast.error('Payment verification failed. Contact support.');
+            }
           }
         },
         prefill: {

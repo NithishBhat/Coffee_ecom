@@ -36,14 +36,17 @@ router.post('/create', async (req, res, next) => {
 
     const orderItems = [];
     let subtotal = 0;
+    const stockErrors = [];
 
     for (const item of items) {
       const product = products.find((p) => p._id.toString() === item.productId);
       if (!product) {
-        return res.status(400).json({ success: false, message: `Product ${item.productId} not found` });
+        stockErrors.push({ name: item.productId, requested: item.quantity, available: 0 });
+        continue;
       }
       if (product.stockQuantity < item.quantity) {
-        return res.status(400).json({ success: false, message: `${product.name} has only ${product.stockQuantity} units in stock` });
+        stockErrors.push({ name: product.name, requested: item.quantity, available: product.stockQuantity });
+        continue;
       }
       orderItems.push({
         productId: product._id,
@@ -53,6 +56,14 @@ router.post('/create', async (req, res, next) => {
         weight: product.weight,
       });
       subtotal += product.price * item.quantity;
+    }
+
+    if (stockErrors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Some items have insufficient stock',
+        stockErrors,
+      });
     }
 
     const deliveryFee = subtotal >= 500 ? 0 : 50;
@@ -142,14 +153,52 @@ router.post('/verify', async (req, res, next) => {
     };
     await order.save();
 
-    // Decrement stock and check low stock
-    const lowStockProducts = [];
+    // Atomic stock decrement — fail if insufficient
+    const decremented = []; // track successful decrements for rollback
+    let stockFailed = false;
+    let failedItemName = '';
+
     for (const item of order.items) {
-      const product = await Product.findByIdAndUpdate(
-        item.productId,
+      const result = await Product.findOneAndUpdate(
+        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
         { $inc: { stockQuantity: -item.quantity } },
         { new: true }
       );
+      if (!result) {
+        stockFailed = true;
+        failedItemName = item.name;
+        break;
+      }
+      decremented.push(item);
+    }
+
+    if (stockFailed) {
+      // Roll back successful decrements
+      for (const item of decremented) {
+        await Product.findByIdAndUpdate(item.productId, { $inc: { stockQuantity: item.quantity } });
+      }
+      // Initiate refund via Razorpay
+      try {
+        await razorpay.payments.refund(razorpay_payment_id, {
+          amount: order.totalAmount * 100,
+        });
+      } catch (refundErr) {
+        console.error('[refund] Razorpay refund failed:', refundErr.message);
+      }
+      order.paymentStatus = 'refunded';
+      order.refundReason = `${failedItemName} sold out after payment`;
+      await order.save();
+      return res.status(409).json({
+        success: false,
+        message: `Sorry, "${failedItemName}" sold out while you were paying. Your payment of ₹${order.totalAmount.toLocaleString('en-IN')} will be refunded within 5-7 business days.`,
+        refunded: true,
+      });
+    }
+
+    // Check low stock alerts for successfully decremented items
+    const lowStockProducts = [];
+    for (const item of decremented) {
+      const product = await Product.findById(item.productId);
       if (
         product &&
         product.stockQuantity <= product.lowStockThreshold &&

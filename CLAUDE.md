@@ -37,7 +37,7 @@ coffee-shop/
 │       │   ├── Navbar.jsx             # Public nav: Home, Shop, Track Order, Cart (mobile responsive)
 │       │   ├── AdminNavbar.jsx        # Admin nav: Dashboard, Products, Orders, Reviews, View Store, Logout
 │       │   ├── Footer.jsx             # Site footer (hidden on admin pages)
-│       │   ├── ProductCard.jsx        # Product grid card with rating stars, add-to-cart
+│       │   ├── ProductCard.jsx        # Product grid card with rating stars, low stock warning, add-to-cart
 │       │   ├── CartItem.jsx           # Single cart item row with quantity controls
 │       │   ├── AdminRoute.jsx         # JWT guard: client-side expiry check + server-side /admin/verify call on every page load
 │       │   └── StarRating.jsx         # Reusable star display/input component
@@ -67,11 +67,11 @@ coffee-shop/
     │   └── auth.js                    # JWT verification middleware for admin routes
     ├── models/
     │   ├── Product.js                 # name, price, weight, roastType, origin, imageUrl, stock, lowStockThreshold, lowStockAlertSent
-    │   ├── Order.js                   # orderId (random ORD-XXXXXX), customer, items, amounts, Razorpay IDs, payment/fulfillment status, gstBreakdown
+    │   ├── Order.js                   # orderId (random ORD-XXXXXX), customer, items, amounts, Razorpay IDs, payment/fulfillment status (incl. refunded), refundReason, gstBreakdown
     │   └── Review.js                  # productId, customerName, customerPhone, rating, reviewText, isVerified
     ├── routes/
     │   ├── products.js                # Public product listing, detail, reviews CRUD
-    │   ├── orders.js                  # Order creation, payment verification, GST calculation, tracking, invoice
+    │   ├── orders.js                  # Order creation (stock check), payment verification (atomic decrement, refund on failure), GST, tracking, invoice
     │   ├── admin.js                   # Auth + token verify + all admin CRUD, analytics, low-stock, reviews
     │   └── webhooks.js                # Razorpay webhook backup for payment confirmation
     └── utils/
@@ -108,11 +108,17 @@ coffee-shop/
 
 ### Checkout → Payment → Order
 1. Checkout form validates contact + address (Indian states dropdown, 6-digit pincode)
-2. `POST /api/orders/create` — validates items, re-fetches prices from DB, creates Razorpay order, saves order to DB with `paymentStatus: pending`
+2. `POST /api/orders/create` — validates items, re-fetches prices from DB, **checks stock for all items** (returns `stockErrors` array with name/requested/available if any are insufficient). Creates Razorpay order, saves order with `paymentStatus: pending`
 3. Razorpay checkout modal opens with prefilled customer info
-4. On payment success, `POST /api/orders/verify` — verifies HMAC signature, updates order to `paid`, calculates GST breakdown (CGST/SGST for Karnataka, IGST for other states), decrements stock, checks low stock alerts, sends confirmation email with GST breakup + invoice link
+4. On payment success, `POST /api/orders/verify`:
+   - Verifies HMAC signature
+   - Updates order to `paid`, calculates GST breakdown
+   - **Atomic stock decrement**: uses `findOneAndUpdate` with `{ stockQuantity: { $gte: qty } }` — only decrements if stock exists
+   - **If stock ran out after payment**: rolls back successful decrements, initiates Razorpay refund (`razorpay.payments.refund`), sets `paymentStatus: 'refunded'` with `refundReason`, returns error to frontend
+   - If stock OK: checks low stock alerts, sends confirmation email with GST breakup + invoice link
 5. Phone saved to localStorage, redirects to `/order/:orderId`
 6. OrderConfirmation page loads order, clears cart, shows status tracker, download invoice button
+7. **Frontend handles failures**: stock check errors show toast asking to update cart; refund errors show detailed message with refund timeline
 
 ### Order Tracking
 - **Phone only**: `GET /api/orders/track-by-phone` — returns summary list (orderId, date, total, status only). Shows 5 at a time with "Show More" pagination. Filter by Last 7/30/90 days.
@@ -147,8 +153,8 @@ coffee-shop/
 | GET | `/api/products/:id` | Single product detail |
 | GET | `/api/products/:id/reviews` | Reviews for a product + avgRating + reviewCount |
 | POST | `/api/products/:id/reviews` | Submit review (rate-limited, 1 per phone per product) |
-| POST | `/api/orders/create` | Create order + Razorpay order |
-| POST | `/api/orders/verify` | Verify Razorpay payment |
+| POST | `/api/orders/create` | Stock check + create order + Razorpay order. Returns `stockErrors[]` on insufficient stock |
+| POST | `/api/orders/verify` | Verify payment, atomic stock decrement, auto-refund on stock failure. Returns `refunded: true` on oversell |
 | GET | `/api/orders/track-by-phone` | Order summaries by phone (`?phone=`) |
 | GET | `/api/orders/track` | Full order by ID + phone (`?orderId=&phone=`) |
 | GET | `/api/orders/:id/invoice` | Invoice data for paid order (validated by `?phone=`) |
@@ -179,6 +185,7 @@ coffee-shop/
 - **Emails**: Async fire-and-forget — `sendEmail()` catches errors and logs, never throws. Entire email system no-ops gracefully if `SMTP_HOST` is empty.
 - **Phone normalization**: Tracking routes use `$or` to match phone as 10-digit, +91-prefixed, or 91-prefixed
 - **Order IDs**: Random alphanumeric `ORD-XXXXXX` (6 chars from A-Z/2-9, excludes 0/O/1/I). Uniqueness checked before save, `unique: true` index as safety net.
+- **Stock management**: Two-phase protection against overselling. Phase 1 (order create): checks all items have sufficient stock, returns detailed `stockErrors` array. Phase 2 (payment verify): atomic `findOneAndUpdate` with `{ stockQuantity: { $gte: qty } }` — if any fails, rolls back all decrements and auto-refunds via Razorpay API. Order gets `paymentStatus: 'refunded'` + `refundReason`. Frontend shows "Only X left!" (red) when stock <= 5, "Out of Stock" when 0.
 - **Low stock alerts**: `lowStockAlertSent` boolean on Product prevents duplicate emails. Resets when admin restocks above threshold.
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
 - **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
