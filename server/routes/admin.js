@@ -173,6 +173,7 @@ router.get('/stats', async (req, res, next) => {
       dailyRevenue,
       topProducts,
       gstMonth,
+      customerCount,
     ] = await Promise.all([
       // Period aggregation: total, today, week, month in one pipeline
       Order.aggregate([
@@ -234,6 +235,13 @@ router.get('/stats', async (req, res, next) => {
         { $match: { ...paid, createdAt: { $gte: monthStart }, 'gstBreakdown.gstAmount': { $exists: true } } },
         { $group: { _id: null, totalGst: { $sum: '$gstBreakdown.gstAmount' } } },
       ]),
+
+      // Unique customer count
+      Order.aggregate([
+        { $match: paid },
+        { $group: { _id: '$customer.phone' } },
+        { $count: 'total' },
+      ]),
     ]);
 
     const extract = (arr) => ({
@@ -273,10 +281,59 @@ router.get('/stats', async (req, res, next) => {
         month,
         avgOrderValue: total.orders > 0 ? Math.round(total.revenue / total.orders) : 0,
         gstCollectedMonth: gstMonth[0]?.totalGst || 0,
+        totalCustomers: customerCount[0]?.total || 0,
         dailyChart,
         topProducts,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/admin/customers — unique customers aggregated from orders
+router.get('/customers', async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    const pipeline = [
+      { $match: { paymentStatus: 'paid' } },
+      {
+        $group: {
+          _id: '$customer.phone',
+          name: { $last: '$customer.name' },
+          phone: { $last: '$customer.phone' },
+          email: { $last: '$customer.email' },
+          orderCount: { $sum: 1 },
+          totalSpent: { $sum: '$totalAmount' },
+          lastOrderDate: { $max: '$createdAt' },
+          orders: {
+            $push: {
+              orderId: '$orderId',
+              createdAt: '$createdAt',
+              totalAmount: '$totalAmount',
+              fulfillmentStatus: '$fulfillmentStatus',
+            },
+          },
+        },
+      },
+      { $sort: { lastOrderDate: -1 } },
+    ];
+
+    if (search) {
+      const q = search.trim();
+      pipeline.push({
+        $match: {
+          $or: [
+            { name: { $regex: q, $options: 'i' } },
+            { phone: { $regex: q } },
+            { email: { $regex: q, $options: 'i' } },
+          ],
+        },
+      });
+    }
+
+    const customers = await Order.aggregate(pipeline);
+    res.json({ success: true, customers });
   } catch (err) {
     next(err);
   }
