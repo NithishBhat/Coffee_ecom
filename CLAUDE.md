@@ -38,7 +38,7 @@ coffee-shop/
 │       │   ├── Footer.jsx             # Site footer
 │       │   ├── ProductCard.jsx        # Product grid card with rating stars, add-to-cart
 │       │   ├── CartItem.jsx           # Single cart item row with quantity controls
-│       │   ├── AdminRoute.jsx         # JWT guard: checks localStorage adminToken + expiry
+│       │   ├── AdminRoute.jsx         # JWT guard: client-side expiry check + server-side /admin/verify call on every page load
 │       │   └── StarRating.jsx         # Reusable star display/input component
 │       ├── pages/
 │       │   ├── Home.jsx               # Landing page with hero, featured products
@@ -52,10 +52,10 @@ coffee-shop/
 │       │       ├── Login.jsx          # Admin password login
 │       │       ├── Dashboard.jsx      # Analytics: stat cards, revenue chart, top products, low stock alert
 │       │       ├── ProductsManager.jsx # Product CRUD table with modal form, low stock highlighting
-│       │       ├── OrdersManager.jsx  # Orders with Active/Completed/Failed tabs, CSV export
+│       │       ├── OrdersManager.jsx  # Orders with tabs, time filters, search, date range picker, CSV export
 │       │       └── ReviewsManager.jsx # All reviews with delete moderation
 │       └── utils/
-│           └── api.js                 # Axios instance: baseURL from VITE_API_URL, JWT interceptor
+│           └── api.js                 # Axios instance: baseURL from VITE_API_URL, JWT interceptor, global 401 redirect
 │
 └── server/
     ├── server.js                      # Express app setup, middleware, route mounting, MongoDB connect
@@ -70,7 +70,7 @@ coffee-shop/
     ├── routes/
     │   ├── products.js                # Public product listing, detail, reviews CRUD
     │   ├── orders.js                  # Order creation, payment verification, tracking
-    │   ├── admin.js                   # Auth + all admin CRUD, analytics, low-stock, reviews
+    │   ├── admin.js                   # Auth + token verify + all admin CRUD, analytics, low-stock, reviews
     │   └── webhooks.js                # Razorpay webhook backup for payment confirmation
     └── utils/
         ├── email.js                   # Nodemailer transport setup, sendEmail() — skips if no SMTP_HOST
@@ -119,11 +119,14 @@ coffee-shop/
 
 ### Admin Panel
 1. Login with password → JWT stored in localStorage (24h expiry)
-2. Dashboard: revenue stats (today/week/month), bar chart (last 7 days), top 5 products, low stock banner
-3. Products: CRUD table, modal form, low stock rows highlighted orange
-4. Orders: 3 tabs (Active/Completed/Failed), expand for details, status update buttons, CSV export
-5. Reviews: list all with product name, delete moderation
-6. Status update sends email only if status actually changed (old vs new comparison)
+2. Every admin page load: `AdminRoute` validates token server-side via `GET /api/admin/verify`. If invalid/expired → redirect to login. Shows spinner while checking.
+3. Global 401 interceptor in `api.js` catches expired tokens mid-session → clears token, redirects to login
+4. Dashboard: revenue stats (today/week/month), bar chart (last 7 days), top 5 products, low stock banner
+5. Products: CRUD table, modal form, low stock rows highlighted orange
+6. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), search by order ID/name/phone, compact rows, CSV export
+7. Reviews: list all with product name, delete moderation
+8. Status update sends email only if status actually changed (old vs new comparison)
+9. Footer is hidden on all admin pages
 
 ### Email Notifications
 - **Order confirmed** (payment verified) → customer email with items, total, address, track button
@@ -154,6 +157,7 @@ coffee-shop/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/admin/login` | Login (rate-limited) |
+| GET | `/api/admin/verify` | Validate JWT token is still valid (used by AdminRoute on every page load) |
 | GET | `/api/admin/products` | All products including inactive |
 | POST | `/api/admin/products` | Create product |
 | PUT | `/api/admin/products/:id` | Update product (resets lowStockAlertSent if restocked) |
@@ -168,13 +172,14 @@ coffee-shop/
 ## Key Patterns
 
 - **Cart**: `useReducer` in `CartContext`, persisted to `localStorage` key `coffee-cart`
-- **Admin auth**: Single password → JWT in `localStorage` key `adminToken`. `AdminRoute` component checks token existence and expiry client-side. `auth.js` middleware verifies server-side.
+- **Admin auth**: Single password → JWT in `localStorage` key `adminToken`. `AdminRoute` validates on every page load: quick client-side expiry check, then `GET /api/admin/verify` for server-side validation. `auth.js` middleware protects all admin API routes. `api.js` has a global 401 interceptor that clears token and redirects to `/admin/login` if any admin API call fails auth mid-session.
 - **Emails**: Async fire-and-forget — `sendEmail()` catches errors and logs, never throws. Entire email system no-ops gracefully if `SMTP_HOST` is empty.
 - **Phone normalization**: Tracking routes use `$or` to match phone as 10-digit, +91-prefixed, or 91-prefixed
 - **Order IDs**: Random alphanumeric `ORD-XXXXXX` (6 chars from A-Z/2-9, excludes 0/O/1/I). Uniqueness checked before save, `unique: true` index as safety net.
 - **Low stock alerts**: `lowStockAlertSent` boolean on Product prevents duplicate emails. Resets when admin restocks above threshold.
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
-- **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages
+- **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
+- **Admin UI**: Footer is hidden on all `/admin/*` routes via `useLocation` check in `App.jsx`. Orders page has time filters (Today/Week/Month/Custom date range) and search that combine with tab filtering.
 - **Server static files**: Only served if `client/dist/` exists (checked with `fs.existsSync`), otherwise returns API health JSON at `/`
 
 ## Deployment
