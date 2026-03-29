@@ -176,6 +176,7 @@ router.get('/stats', async (req, res, next) => {
       topProducts,
       gstMonth,
       customerCount,
+      recentOrders,
     ] = await Promise.all([
       // Period aggregation: total, today, week, month in one pipeline
       Order.aggregate([
@@ -265,6 +266,12 @@ router.get('/stats', async (req, res, next) => {
         { $group: { _id: '$customer.phone' } },
         { $count: 'total' },
       ]),
+
+      // 5 most recent paid orders
+      Order.find(paid)
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('orderId customer.name totalAmount fulfillmentStatus createdAt'),
     ]);
 
     const extract = (arr) => ({
@@ -322,6 +329,7 @@ router.get('/stats', async (req, res, next) => {
         monthlyChart,
         yearlyChart,
         topProducts,
+        recentOrders,
       },
     });
   } catch (err) {

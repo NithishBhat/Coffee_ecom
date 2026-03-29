@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { FiDollarSign, FiTrendingUp, FiAlertTriangle, FiUsers } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiAlertTriangle, FiUsers, FiFileText, FiShoppingCart } from 'react-icons/fi';
+import { BsCurrencyRupee } from 'react-icons/bs';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../utils/api';
 
@@ -12,6 +13,13 @@ const CHART_PERIODS = [
   { key: 'year', label: 'Year' },
 ];
 
+const STATUS_COLORS = {
+  pending: 'text-yellow-600 bg-yellow-50',
+  processing: 'text-blue-600 bg-blue-50',
+  shipped: 'text-purple-600 bg-purple-50',
+  delivered: 'text-green-600 bg-green-50',
+};
+
 function formatLabel(date, period) {
   if (period === 'year') return date;
   if (period === 'month') {
@@ -22,6 +30,7 @@ function formatLabel(date, period) {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -84,12 +93,14 @@ export default function AdminDashboard() {
               <p className="font-semibold text-amber-800 text-sm mb-2">Low Stock Alert</p>
               <div className="flex flex-wrap gap-x-6 gap-y-1">
                 {lowStock.map((p) => (
-                  <span key={p._id} className="text-sm text-amber-700">
-                    {p.name}: <span className="font-bold text-amber-900">{p.stockQuantity}</span> left
+                  <span
+                    key={p._id}
+                    className={`text-sm ${p.stockQuantity === 0 ? 'text-red-700 font-bold' : 'text-amber-700'}`}
+                  >
+                    {p.name}: <span className={p.stockQuantity === 0 ? 'text-red-800' : 'font-bold text-amber-900'}>{p.stockQuantity === 0 ? 'Out of stock' : `${p.stockQuantity} left`}</span>
                   </span>
                 ))}
               </div>
-              <Link to="/admin/products" className="text-xs text-amber-600 underline hover:text-amber-800 mt-2 inline-block">Manage Products</Link>
             </div>
           </div>
         </div>
@@ -142,45 +153,74 @@ export default function AdminDashboard() {
             )}
           </div>
 
-          {/* Stat cards + Top Products */}
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">Today</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.today.revenue)}</p>
+              <p className="text-xs text-coffee-400 mt-1">{stats.today.orders} orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">This Week</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.week.revenue)}</p>
+              <p className="text-xs text-coffee-400 mt-1">{stats.week.orders} orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">This Month</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.month.revenue)}</p>
+              <p className="text-xs text-coffee-400 mt-1">{stats.month.orders} orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <FiShoppingCart className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">Avg Order Value</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
+              <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <FiUsers className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">Customers</p>
+              <p className="text-xl font-bold text-coffee-800">{stats.totalCustomers}</p>
+              <p className="text-xs text-coffee-400 mt-1">unique buyers</p>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <FiFileText className="text-coffee-500 mb-2" size={22} />
+              <p className="text-xs text-coffee-400">GST This Month</p>
+              <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
+              <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
+            </div>
+          </div>
+
+          {/* Recent Orders + Top Products */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-            <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">Today</p>
-                <p className="text-xl font-bold text-coffee-800">{fmt(stats.today.revenue)}</p>
-                <p className="text-xs text-coffee-400 mt-1">{stats.today.orders} orders</p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">This Week</p>
-                <p className="text-xl font-bold text-coffee-800">{fmt(stats.week.revenue)}</p>
-                <p className="text-xs text-coffee-400 mt-1">{stats.week.orders} orders</p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">This Month</p>
-                <p className="text-xl font-bold text-coffee-800">{fmt(stats.month.revenue)}</p>
-                <p className="text-xs text-coffee-400 mt-1">{stats.month.orders} orders</p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiTrendingUp className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">Avg Order Value</p>
-                <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
-                <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiUsers className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">Customers</p>
-                <p className="text-xl font-bold text-coffee-800">{stats.totalCustomers}</p>
-                <p className="text-xs text-coffee-400 mt-1">unique buyers</p>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-5">
-                <FiDollarSign className="text-coffee-500 mb-2" size={22} />
-                <p className="text-xs text-coffee-400">GST This Month</p>
-                <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
-                <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
-              </div>
+            {/* Recent Orders */}
+            <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+              <h2 className="font-semibold text-coffee-800 mb-4">Recent Orders</h2>
+              {stats.recentOrders?.length > 0 ? (
+                <div className="space-y-2">
+                  {stats.recentOrders.map((o) => (
+                    <div
+                      key={o.orderId}
+                      onClick={() => navigate('/admin/orders')}
+                      className="flex flex-wrap items-center gap-x-4 gap-y-1 p-3 rounded-lg hover:bg-coffee-50 cursor-pointer transition-colors"
+                    >
+                      <span className="text-sm font-semibold text-coffee-800">{o.orderId}</span>
+                      <span className="text-sm text-coffee-600 truncate">{o.customer?.name}</span>
+                      <span className="text-sm font-semibold text-coffee-700">{fmt(o.totalAmount)}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_COLORS[o.fulfillmentStatus] || ''}`}>
+                        {o.fulfillmentStatus}
+                      </span>
+                      <span className="text-xs text-coffee-400 ml-auto">
+                        {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-coffee-400 text-sm py-8 text-center">No orders yet</p>
+              )}
             </div>
 
             {/* Top Products */}
