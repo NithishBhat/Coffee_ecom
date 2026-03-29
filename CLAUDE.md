@@ -52,7 +52,7 @@ coffee-shop/
 │       │   ├── Invoice.jsx            # GST tax invoice page with print/download, per-line HSN/tax breakup
 │       │   └── admin/
 │       │       ├── Login.jsx          # Admin password login
-│       │       ├── Dashboard.jsx      # Analytics: stat cards, revenue chart, top products, low stock alert (no manage links — navbar handles nav)
+│       │       ├── Dashboard.jsx      # Analytics: line chart (day/month/year toggle), stat cards, top products, low stock alert
 │       │       ├── ProductsManager.jsx # Product CRUD table with modal form (GST breakup preview), low stock highlighting
 │       │       ├── OrdersManager.jsx  # Orders with tabs, time/month filters, search, date range picker, CSV export
 │       │       ├── CustomersManager.jsx # Customer table aggregated from orders, expandable order history, search
@@ -131,7 +131,7 @@ coffee-shop/
 2. Every admin page load: `AdminRoute` validates token server-side via `GET /api/admin/verify`. If invalid/expired → redirect to login. Shows spinner while checking.
 3. Global 401 interceptor in `api.js` catches expired tokens mid-session → clears token, redirects to login
 4. **Separate admin navbar** (`AdminNavbar`): Dashboard/Products/Orders/Customers/Reviews links, "View Store" (opens public site in new tab), Logout. Shown on all admin pages except login. Public navbar + footer hidden on admin pages.
-5. Dashboard: revenue stats (today/week/month), customer count, GST collected this month, avg order value, bar chart (last 7 days), top 5 products, low stock banner. No manage links — navbar handles navigation.
+5. Dashboard: revenue line chart at top with Day/Month/Year toggle (7 days, 12 months, 3 years), stat cards (today/week/month revenue, avg order value, customer count, GST this month), top 5 products, low stock banner. No manage links — navbar handles navigation.
 6. Products: CRUD table, modal form with live GST breakup preview (base price + GST 5% calculated from selling price), low stock rows highlighted orange
 7. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), month dropdown filter, search by order ID/name/phone, compact rows, CSV export. Month filter resets when switching tabs.
 8. Customers: table of unique customers aggregated from orders (name, phone, email, order count, total spent, last order date). Expandable rows show full order history. Search by name/phone/email (server-side). No separate Customer model — all data from Order aggregation.
@@ -179,7 +179,7 @@ coffee-shop/
 | DELETE | `/api/admin/reviews/:id` | Delete review |
 | GET | `/api/admin/customers` | Unique customers aggregated from orders (supports `?search=`) |
 | GET | `/api/admin/low-stock` | Products where stock <= threshold |
-| GET | `/api/admin/stats` | Analytics: period stats, daily chart, top products, avg order value, customer count, GST collected this month |
+| GET | `/api/admin/stats` | Analytics: period stats, daily/monthly/yearly charts, top products, avg order value, customer count, GST this month |
 
 ## Key Patterns
 
