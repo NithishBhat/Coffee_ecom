@@ -108,8 +108,8 @@ router.put('/orders/:id', async (req, res, next) => {
     existing.fulfillmentStatus = fulfillmentStatus;
     await existing.save();
 
-    // Only send email if status actually changed
-    if (oldStatus !== fulfillmentStatus) {
+    // Only send email for shipped/delivered transitions
+    if (oldStatus !== fulfillmentStatus && (fulfillmentStatus === 'shipped' || fulfillmentStatus === 'delivered')) {
       sendOrderStatusUpdate(existing, fulfillmentStatus);
     }
 

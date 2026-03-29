@@ -135,13 +135,13 @@ coffee-shop/
 7. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), month dropdown filter, search by order ID/name/phone, compact rows, CSV export. Month filter resets when switching tabs.
 8. Customers: table of unique customers aggregated from orders (name, phone, email, order count, total spent, last order date). Expandable rows show full order history. Search by name/phone/email (server-side). No separate Customer model — all data from Order aggregation.
 9. Reviews: list all with product name, delete moderation
-9. Status update sends email only if status actually changed (old vs new comparison)
+9. Status update sends email only for shipped/delivered transitions (not processing or other intermediate statuses)
 
 ### Email Notifications
 - **Order confirmed** (payment verified) → customer email with items, total, GST breakup (CGST/SGST or IGST), address, track button, invoice link
-- **Processing** (admin updates) → "being prepared" email
 - **Shipped** (admin updates) → shipping notification with tracking link
 - **Delivered** (admin updates) → delivery confirmation with "Order Again" link
+- **Processing** — no email sent (intermediate status, not customer-facing)
 - **Low stock alert** → sent to SMTP_FROM when product drops below threshold after order (once per product via `lowStockAlertSent` flag, resets on restock)
 
 ## API Routes
