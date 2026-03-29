@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AdminRoute from './components/AdminRoute';
@@ -16,6 +16,9 @@ import AdminOrders from './pages/admin/OrdersManager';
 import AdminReviews from './pages/admin/ReviewsManager';
 
 export default function App() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -42,7 +45,7 @@ export default function App() {
           } />
         </Routes>
       </main>
-      <Footer />
+      {!isAdmin && <Footer />}
     </div>
   );
 }
