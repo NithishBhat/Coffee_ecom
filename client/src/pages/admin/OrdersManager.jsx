@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { FiArrowLeft, FiChevronDown, FiChevronUp, FiDownload, FiSearch } from 'react-icons/fi';
+import { FiChevronDown, FiChevronUp, FiDownload, FiSearch } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -227,7 +226,6 @@ export default function OrdersManager() {
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <Link to="/admin/dashboard" className="text-coffee-500 hover:text-coffee-700"><FiArrowLeft size={18} /></Link>
         <h1 className="font-display text-xl font-bold text-coffee-800">Orders</h1>
         <span className="text-xs text-coffee-400 ml-auto">{timeFiltered.length} filtered / {orders.length} total</span>
         <button

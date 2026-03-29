@@ -1,46 +1,42 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { FiPackage, FiShoppingCart, FiDollarSign, FiLogOut, FiTrendingUp, FiAlertTriangle, FiStar } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiPackage, FiShoppingCart, FiDollarSign, FiTrendingUp, FiAlertTriangle, FiStar } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../utils/api';
 
 const fmt = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [lowStock, setLowStock] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/admin/stats'),
-      api.get('/admin/low-stock'),
-    ])
-      .then(([statsRes, lowStockRes]) => {
+    const fetchStats = async () => {
+      try {
+        const [statsRes, lowStockRes] = await Promise.all([
+          api.get('/admin/stats'),
+          api.get('/admin/low-stock'),
+        ]);
         setStats(statsRes.data.stats);
         setLowStock(lowStockRes.data.products);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      } catch {
+        // Individual fallbacks so one failure doesn't block the other
+        try { const r = await api.get('/admin/stats'); setStats(r.data.stats); } catch {}
+        try { const r = await api.get('/admin/low-stock'); setLowStock(r.data.products); } catch {}
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
   }, []);
-
-  const logout = () => {
-    localStorage.removeItem('adminToken');
-    navigate('/admin/login');
-  };
 
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display text-3xl font-bold text-coffee-800">Admin Dashboard</h1>
-          <button onClick={logout} className="flex items-center gap-2 text-coffee-500 hover:text-red-500 transition-colors">
-            <FiLogOut /> Logout
-          </button>
-        </div>
+        <h1 className="font-display text-3xl font-bold text-coffee-800 mb-8">Dashboard</h1>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-pulse">
-          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-white rounded-xl shadow-sm p-6 h-28" />
           ))}
         </div>
@@ -55,13 +51,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="font-display text-3xl font-bold text-coffee-800">Admin Dashboard</h1>
-        <button onClick={logout} className="flex items-center gap-2 text-coffee-500 hover:text-red-500 transition-colors">
-          <FiLogOut /> Logout
-        </button>
-      </div>
+      <h1 className="font-display text-3xl font-bold text-coffee-800 mb-8">Dashboard</h1>
 
       {/* Low stock warning */}
       {lowStock.length > 0 && (

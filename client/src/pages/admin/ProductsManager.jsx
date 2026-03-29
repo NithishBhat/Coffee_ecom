@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { FiPlus, FiEdit2, FiTrash2, FiX, FiArrowLeft } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 
@@ -80,10 +79,7 @@ export default function ProductsManager() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Link to="/admin/dashboard" className="text-coffee-500 hover:text-coffee-700"><FiArrowLeft size={20} /></Link>
-          <h1 className="font-display text-2xl font-bold text-coffee-800">Products</h1>
-        </div>
+        <h1 className="font-display text-2xl font-bold text-coffee-800">Products</h1>
         <button onClick={openAdd} className="flex items-center gap-2 bg-coffee-600 hover:bg-coffee-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
           <FiPlus /> Add Product
         </button>
