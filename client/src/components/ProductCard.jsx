@@ -49,6 +49,7 @@ export default function ProductCard({ product }) {
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-coffee-700">
             ₹{product.price.toLocaleString('en-IN')}
+            <span className="text-[10px] font-normal text-coffee-400 ml-1">incl. GST</span>
           </span>
           <button
             onClick={handleAdd}

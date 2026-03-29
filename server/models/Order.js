@@ -39,6 +39,17 @@ const orderSchema = new mongoose.Schema(
       enum: ['pending', 'processing', 'shipped', 'delivered'],
       default: 'pending',
     },
+    gstBreakdown: {
+      basePrice: Number,
+      gstRate: { type: Number, default: 5 },
+      gstAmount: Number,
+      cgst: Number,
+      sgst: Number,
+      igst: Number,
+      isInterState: Boolean,
+      businessState: { type: String, default: 'Karnataka' },
+      customerState: String,
+    },
   },
   { timestamps: true }
 );

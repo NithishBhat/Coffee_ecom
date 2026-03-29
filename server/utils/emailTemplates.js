@@ -73,13 +73,31 @@ function addressBlock(address) {
 
 // --- Email builders ---
 
+function gstBlock(gst) {
+  if (!gst) return '';
+  const rows = gst.isInterState
+    ? `<tr><td style="padding:4px 0;color:#A08D7D;font-size:12px">IGST (5%)</td><td style="padding:4px 0;color:#A08D7D;font-size:12px;text-align:right">&#8377;${gst.igst.toLocaleString('en-IN')}</td></tr>`
+    : `<tr><td style="padding:4px 0;color:#A08D7D;font-size:12px">CGST (2.5%)</td><td style="padding:4px 0;color:#A08D7D;font-size:12px;text-align:right">&#8377;${gst.cgst.toLocaleString('en-IN')}</td></tr>
+       <tr><td style="padding:4px 0;color:#A08D7D;font-size:12px">SGST (2.5%)</td><td style="padding:4px 0;color:#A08D7D;font-size:12px;text-align:right">&#8377;${gst.sgst.toLocaleString('en-IN')}</td></tr>`;
+  return `<table style="width:100%;border-collapse:collapse;margin:8px 0">
+    <tr><td style="padding:4px 0;color:#A08D7D;font-size:12px">Taxable Amount</td><td style="padding:4px 0;color:#A08D7D;font-size:12px;text-align:right">&#8377;${gst.basePrice.toLocaleString('en-IN')}</td></tr>
+    ${rows}
+    <tr><td style="padding:4px 0;color:#5C4A3A;font-size:12px;font-weight:600">Total GST (5%)</td><td style="padding:4px 0;color:#5C4A3A;font-size:12px;font-weight:600;text-align:right">&#8377;${gst.gstAmount.toLocaleString('en-IN')}</td></tr>
+  </table>`;
+}
+
 function orderConfirmationEmail(order) {
+  const invoiceUrl = `${FRONTEND_URL}/invoice/${encodeURIComponent(order.orderId)}?phone=${encodeURIComponent(order.customer.phone)}`;
   const body = `
     <p style="margin:0 0 4px;color:#A08D7D;font-size:14px">Order ID: <strong style="color:#6F4E37">${order.orderId}</strong></p>
     <p style="margin:0 0 20px;color:#A08D7D;font-size:14px">Thank you for your purchase, ${order.customer.name}.</p>
     ${itemsTable(order.items, order.subtotal, order.deliveryFee, order.totalAmount)}
+    ${gstBlock(order.gstBreakdown)}
     ${addressBlock(order.customer.address)}
-    ${trackButton(order.orderId, order.customer.phone)}`;
+    ${trackButton(order.orderId, order.customer.phone)}
+    <div style="text-align:center;margin:8px 0 16px">
+      <a href="${invoiceUrl}" style="color:#6F4E37;font-size:13px;text-decoration:underline">View GST Invoice</a>
+    </div>`;
   return buildEmail('Order Confirmed!', body);
 }
 

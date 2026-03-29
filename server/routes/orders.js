@@ -121,6 +121,27 @@ router.post('/verify', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found or already processed' });
     }
 
+    // Calculate GST breakdown (prices are GST-inclusive at 5%)
+    const BUSINESS_STATE = 'Karnataka';
+    const customerState = order.customer.address.state;
+    const isInterState = customerState !== BUSINESS_STATE;
+    const taxableAmount = order.subtotal;
+    const basePrice = Math.round((taxableAmount / 1.05) * 100) / 100;
+    const gstAmount = Math.round((taxableAmount - basePrice) * 100) / 100;
+
+    order.gstBreakdown = {
+      basePrice,
+      gstRate: 5,
+      gstAmount,
+      cgst: isInterState ? 0 : Math.round((gstAmount / 2) * 100) / 100,
+      sgst: isInterState ? 0 : Math.round((gstAmount / 2) * 100) / 100,
+      igst: isInterState ? gstAmount : 0,
+      isInterState,
+      businessState: BUSINESS_STATE,
+      customerState,
+    };
+    await order.save();
+
     // Decrement stock and check low stock
     const lowStockProducts = [];
     for (const item of order.items) {
@@ -202,6 +223,32 @@ router.get('/track', async (req, res, next) => {
     console.log('[track] found:', order ? order.orderId : 'null');
     if (!order) {
       return res.status(404).json({ success: false, message: 'No order found matching that ID and phone number' });
+    }
+    res.json({ success: true, order });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/orders/:id/invoice — invoice data (public, validated by phone)
+router.get('/:id/invoice', async (req, res, next) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number required' });
+    }
+    const phone10 = phone.replace(/^\+?91/, '').slice(-10);
+    const order = await Order.findOne({
+      orderId: req.params.id,
+      paymentStatus: 'paid',
+      $or: [
+        { 'customer.phone': phone10 },
+        { 'customer.phone': `+91${phone10}` },
+        { 'customer.phone': `91${phone10}` },
+      ],
+    });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Invoice not found' });
     }
     res.json({ success: true, order });
   } catch (err) {

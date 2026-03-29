@@ -220,7 +220,7 @@ export default function Checkout() {
             </div>
             <hr className="border-coffee-100" />
             <div className="flex justify-between font-bold text-coffee-800 text-base">
-              <span>Total</span>
+              <span>Total <span className="text-xs font-normal text-coffee-400">(incl. GST)</span></span>
               <span>₹{totalAmount.toLocaleString('en-IN')}</span>
             </div>
           </div>

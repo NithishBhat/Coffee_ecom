@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiCheckCircle, FiMessageCircle, FiCopy } from 'react-icons/fi';
+import { FiCheckCircle, FiMessageCircle, FiCopy, FiFileText } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
@@ -147,6 +147,12 @@ export default function OrderConfirmation() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
+        <Link
+          to={`/invoice/${order.orderId}?phone=${encodeURIComponent(order.customer.phone)}`}
+          className="flex-1 flex items-center justify-center gap-2 bg-coffee-600 hover:bg-coffee-700 text-white py-3 rounded-xl font-semibold transition-colors"
+        >
+          <FiFileText /> Download Invoice
+        </Link>
         <a
           href={`https://wa.me/?text=${whatsappMsg}`}
           target="_blank"
