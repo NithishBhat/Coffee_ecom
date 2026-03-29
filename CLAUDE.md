@@ -34,8 +34,9 @@ coffee-shop/
 │       ├── context/
 │       │   └── CartContext.jsx        # Cart state via useReducer, persisted to localStorage
 │       ├── components/
-│       │   ├── Navbar.jsx             # Top nav: Home, Shop, Track Order, Cart (mobile responsive)
-│       │   ├── Footer.jsx             # Site footer
+│       │   ├── Navbar.jsx             # Public nav: Home, Shop, Track Order, Cart (mobile responsive)
+│       │   ├── AdminNavbar.jsx        # Admin nav: Dashboard, Products, Orders, Reviews, View Store, Logout
+│       │   ├── Footer.jsx             # Site footer (hidden on admin pages)
 │       │   ├── ProductCard.jsx        # Product grid card with rating stars, add-to-cart
 │       │   ├── CartItem.jsx           # Single cart item row with quantity controls
 │       │   ├── AdminRoute.jsx         # JWT guard: client-side expiry check + server-side /admin/verify call on every page load
@@ -47,12 +48,12 @@ coffee-shop/
 │       │   ├── Cart.jsx               # Cart page with items, totals, checkout button
 │       │   ├── Checkout.jsx           # Contact + address form, Razorpay integration
 │       │   ├── OrderConfirmation.jsx  # Post-payment: order details, status tracker, WhatsApp share
-│       │   ├── TrackOrder.jsx         # Phone-only (order list) or phone+ID (full details) tracking
+│       │   ├── TrackOrder.jsx         # Phone-only (order list with month filter) or phone+ID (full details) tracking
 │       │   └── admin/
 │       │       ├── Login.jsx          # Admin password login
-│       │       ├── Dashboard.jsx      # Analytics: stat cards, revenue chart, top products, low stock alert
+│       │       ├── Dashboard.jsx      # Analytics: stat cards, revenue chart, top products, low stock alert (no manage links — navbar handles nav)
 │       │       ├── ProductsManager.jsx # Product CRUD table with modal form, low stock highlighting
-│       │       ├── OrdersManager.jsx  # Orders with tabs, time filters, search, date range picker, CSV export
+│       │       ├── OrdersManager.jsx  # Orders with tabs, time/month filters, search, date range picker, CSV export
 │       │       └── ReviewsManager.jsx # All reviews with delete moderation
 │       └── utils/
 │           └── api.js                 # Axios instance: baseURL from VITE_API_URL, JWT interceptor, global 401 redirect
@@ -121,12 +122,12 @@ coffee-shop/
 1. Login with password → JWT stored in localStorage (24h expiry)
 2. Every admin page load: `AdminRoute` validates token server-side via `GET /api/admin/verify`. If invalid/expired → redirect to login. Shows spinner while checking.
 3. Global 401 interceptor in `api.js` catches expired tokens mid-session → clears token, redirects to login
-4. Dashboard: revenue stats (today/week/month), bar chart (last 7 days), top 5 products, low stock banner
-5. Products: CRUD table, modal form, low stock rows highlighted orange
-6. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), search by order ID/name/phone, compact rows, CSV export
-7. Reviews: list all with product name, delete moderation
-8. Status update sends email only if status actually changed (old vs new comparison)
-9. Footer is hidden on all admin pages
+4. **Separate admin navbar** (`AdminNavbar`): Dashboard/Products/Orders/Reviews links, "View Store" (opens public site in new tab), Logout. Shown on all admin pages except login. Public navbar + footer hidden on admin pages.
+5. Dashboard: revenue stats (today/week/month), bar chart (last 7 days), top 5 products, low stock banner. No manage links — navbar handles navigation.
+6. Products: CRUD table, modal form, low stock rows highlighted orange
+7. Orders: 3 tabs (Active/Completed/Failed), time filters (Today/Week/Month/All/Custom date range), month dropdown filter, search by order ID/name/phone, compact rows, CSV export. Month filter resets when switching tabs.
+8. Reviews: list all with product name, delete moderation
+9. Status update sends email only if status actually changed (old vs new comparison)
 
 ### Email Notifications
 - **Order confirmed** (payment verified) → customer email with items, total, address, track button
@@ -179,7 +180,7 @@ coffee-shop/
 - **Low stock alerts**: `lowStockAlertSent` boolean on Product prevents duplicate emails. Resets when admin restocks above threshold.
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
 - **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
-- **Admin UI**: Footer is hidden on all `/admin/*` routes via `useLocation` check in `App.jsx`. Orders page has time filters (Today/Week/Month/Custom date range) and search that combine with tab filtering.
+- **Admin UI**: `App.jsx` uses `useLocation` to swap navbars — `AdminNavbar` on admin pages (except login), public `Navbar` elsewhere. Footer hidden on admin pages. Admin pages have no back-arrow links; the admin navbar handles all navigation. Orders page has time filters, month dropdown, and search that all combine with tab filtering. Customer TrackOrder page also has a month filter dropdown for the order list view.
 - **Server static files**: Only served if `client/dist/` exists (checked with `fs.existsSync`), otherwise returns API health JSON at `/`
 
 ## Deployment
@@ -216,4 +217,4 @@ cd server && npm run seed
 - **Modifying models**: Check all routes that read/write that model. Check seed.js if adding required fields.
 - **Changing env vars**: Update both `.env` locally and the deployment platform (Vercel for `VITE_` vars, Render for server vars). `VITE_` vars require a rebuild.
 - **Email changes**: Templates are in `emailTemplates.js`, transport in `email.js`. Test with SMTP_HOST empty to ensure no-op behavior.
-- **Admin features**: Need route in `admin.js`, component in `pages/admin/`, route in `App.jsx`, and link in `Dashboard.jsx`.
+- **Admin features**: Need route in `admin.js`, component in `pages/admin/`, route in `App.jsx`, and nav link in `AdminNavbar.jsx`.
