@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FiAlertTriangle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 import { useCart } from '../context/CartContext';
@@ -36,9 +37,10 @@ const EMAIL_TYPOS = {
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { items, subtotal, deliveryFee, totalAmount, clearCart } = useCart();
+  const { items, subtotal, deliveryFee, totalAmount, clearCart, removeFromCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [emailWarning, setEmailWarning] = useState('');
+  const [refundModal, setRefundModal] = useState(null);
   const [form, setForm] = useState({
     name: '', email: '', phone: '',
     street: '', city: '', state: '', pincode: '',
@@ -80,6 +82,18 @@ export default function Checkout() {
     if (!form.state.trim()) return 'State is required';
     if (!/^\d{6}$/.test(form.pincode)) return '6-digit pincode required';
     return null;
+  };
+
+  const handleRefundAcknowledge = () => {
+    // Extract item name from message like: Sorry, "Item Name" sold out...
+    const match = refundModal?.message?.match(/"([^"]+)"/);
+    if (match) {
+      const itemName = match[1];
+      const cartItem = items.find((i) => i.name === itemName);
+      if (cartItem) removeFromCart(cartItem.productId);
+    }
+    setRefundModal(null);
+    navigate('/cart');
   };
 
   const handlePay = async () => {
@@ -138,7 +152,7 @@ export default function Checkout() {
             navigate(`/order/${data.orderId}`);
           } catch (verifyErr) {
             if (verifyErr.message.includes('refunded')) {
-              toast.error(verifyErr.message, { duration: 8000 });
+              setRefundModal({ message: verifyErr.message });
             } else {
               toast.error('Payment verification failed. Contact support.');
             }
@@ -252,6 +266,34 @@ export default function Checkout() {
           </button>
         </div>
       </div>
+
+      {/* Refund Modal */}
+      {refundModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 text-center">
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <FiAlertTriangle className="text-red-500" size={28} />
+            </div>
+            <h2 className="text-xl font-bold text-coffee-800 mb-2">Item Out of Stock</h2>
+            <p className="text-sm text-coffee-600 mb-3">
+              An item in your order went out of stock after your payment was processed.
+              A full refund has been initiated and will reflect in your account within
+              <span className="font-semibold"> 5-7 business days</span>.
+            </p>
+            {refundModal.message && (
+              <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3 mb-4">
+                {refundModal.message}
+              </p>
+            )}
+            <button
+              onClick={handleRefundAcknowledge}
+              className="w-full bg-coffee-600 hover:bg-coffee-700 text-white py-3 rounded-xl font-semibold transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
