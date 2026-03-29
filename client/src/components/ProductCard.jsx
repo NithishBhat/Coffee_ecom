@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
+import StarRating from './StarRating';
 
 const roastColors = {
   light: 'bg-yellow-100 text-yellow-800',
@@ -38,6 +39,12 @@ export default function ProductCard({ product }) {
           <span className="text-xs text-coffee-400">{product.weight}</span>
         </div>
         <h3 className="font-semibold text-coffee-800 mb-1 line-clamp-1">{product.name}</h3>
+        {product.avgRating > 0 && (
+          <div className="flex items-center gap-1.5 mb-1">
+            <StarRating rating={product.avgRating} size={13} />
+            <span className="text-xs text-coffee-400">({product.reviewCount})</span>
+          </div>
+        )}
         <p className="text-sm text-coffee-500 line-clamp-2 mb-3 flex-1">{product.description}</p>
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-coffee-700">
