@@ -45,6 +45,7 @@ export default function OrdersManager() {
   const [expanded, setExpanded] = useState(null);
   const [tab, setTab] = useState('active');
   const [timeFilter, setTimeFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
@@ -96,6 +97,14 @@ export default function OrdersManager() {
       );
     }
 
+    // Month filter
+    if (monthFilter !== 'all') {
+      list = list.filter((o) => {
+        const d = new Date(o.createdAt);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` === monthFilter;
+      });
+    }
+
     // Group
     const active = [];
     const completed = [];
@@ -110,9 +119,22 @@ export default function OrdersManager() {
       }
     }
     return { grouped: { active, completed, failed }, timeFiltered: list };
-  }, [orders, timeFilter, dateFrom, dateTo, search]);
+  }, [orders, timeFilter, dateFrom, dateTo, search, monthFilter]);
 
   const filtered = grouped[tab] || [];
+
+  // Derive month options from all orders
+  const monthOptions = useMemo(() => {
+    const seen = new Map();
+    for (const o of orders) {
+      const d = new Date(o.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!seen.has(key)) {
+        seen.set(key, d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }));
+      }
+    }
+    return [...seen.entries()].map(([key, label]) => ({ key, label }));
+  }, [orders]);
 
   const exportCSV = (rows, filename) => {
     if (rows.length === 0) return toast.error('No orders to export');
@@ -253,7 +275,7 @@ export default function OrdersManager() {
             className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {TIME_FILTERS.map((tf) => (
             <button
               key={tf.key}
@@ -263,6 +285,18 @@ export default function OrdersManager() {
               {tf.label}
             </button>
           ))}
+          {monthOptions.length > 1 && (
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-coffee-200 bg-white text-coffee-700 focus:outline-none focus:ring-2 focus:ring-coffee-400"
+            >
+              <option value="all">All Months</option>
+              {monthOptions.map((m) => (
+                <option key={m.key} value={m.key}>{m.label}</option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
 
@@ -290,7 +324,7 @@ export default function OrdersManager() {
         {TABS.map((t) => (
           <button
             key={t.key}
-            onClick={() => { setTab(t.key); setExpanded(null); }}
+            onClick={() => { setTab(t.key); setExpanded(null); setMonthFilter('all'); }}
             className={`flex-1 text-xs font-medium py-2 px-2 rounded-md transition-colors ${
               tab === t.key
                 ? 'bg-white text-coffee-800 shadow-sm'

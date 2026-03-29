@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiPackage, FiShoppingCart, FiDollarSign, FiTrendingUp, FiAlertTriangle, FiStar } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp, FiAlertTriangle } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../utils/api';
 
@@ -149,33 +149,6 @@ export default function AdminDashboard() {
         </>
       )}
 
-      {/* Manage links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link
-          to="/admin/products"
-          className="bg-white rounded-xl shadow-sm p-8 hover:shadow-md transition-shadow group"
-        >
-          <FiPackage className="text-coffee-500 mb-3 group-hover:scale-110 transition-transform" size={32} />
-          <h2 className="font-semibold text-coffee-800 text-lg">Manage Products</h2>
-          <p className="text-sm text-coffee-400">Add, edit, or remove products</p>
-        </Link>
-        <Link
-          to="/admin/orders"
-          className="bg-white rounded-xl shadow-sm p-8 hover:shadow-md transition-shadow group"
-        >
-          <FiShoppingCart className="text-coffee-500 mb-3 group-hover:scale-110 transition-transform" size={32} />
-          <h2 className="font-semibold text-coffee-800 text-lg">Manage Orders</h2>
-          <p className="text-sm text-coffee-400">View and update order statuses</p>
-        </Link>
-        <Link
-          to="/admin/reviews"
-          className="bg-white rounded-xl shadow-sm p-8 hover:shadow-md transition-shadow group"
-        >
-          <FiStar className="text-coffee-500 mb-3 group-hover:scale-110 transition-transform" size={32} />
-          <h2 className="font-semibold text-coffee-800 text-lg">Manage Reviews</h2>
-          <p className="text-sm text-coffee-400">View and moderate reviews</p>
-        </Link>
-      </div>
     </div>
   );
 }
