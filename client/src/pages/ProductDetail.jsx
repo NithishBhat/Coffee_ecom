@@ -167,7 +167,10 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {!outOfStock && (
+          {!outOfStock && product.stockQuantity <= 5 && (
+            <p className="text-sm text-red-500 font-semibold mt-3">Only {product.stockQuantity} left!</p>
+          )}
+          {!outOfStock && product.stockQuantity > 5 && (
             <p className="text-xs text-coffee-400 mt-3">{product.stockQuantity} in stock</p>
           )}
         </div>

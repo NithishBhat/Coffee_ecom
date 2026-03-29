@@ -46,6 +46,9 @@ export default function ProductCard({ product }) {
           </div>
         )}
         <p className="text-sm text-coffee-500 line-clamp-2 mb-3 flex-1">{product.description}</p>
+        {!outOfStock && product.stockQuantity <= 5 && (
+          <p className="text-xs text-red-500 font-semibold mb-2">Only {product.stockQuantity} left!</p>
+        )}
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-coffee-700">
             ₹{product.price.toLocaleString('en-IN')}
