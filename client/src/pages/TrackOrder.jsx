@@ -1,18 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { FiSearch, FiPackage, FiEye } from 'react-icons/fi';
+import { FiSearch, FiPackage } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../utils/api';
 
 const STEPS = ['Pending', 'Processing', 'Shipped', 'Delivered'];
 const STEP_MAP = { pending: 0, processing: 1, shipped: 2, delivered: 3 };
-
-const STATUS_COLORS = {
-  pending: 'text-yellow-600 bg-yellow-50',
-  processing: 'text-blue-600 bg-blue-50',
-  shipped: 'text-purple-600 bg-purple-50',
-  delivered: 'text-green-600 bg-green-50',
-};
 
 const PAYMENT_COLORS = {
   pending: 'text-yellow-600 bg-yellow-50',
@@ -27,16 +20,12 @@ export default function TrackOrder() {
     searchParams.get('phone') || localStorage.getItem('customerPhone') || ''
   );
   const [order, setOrder] = useState(null);
-  const [orders, setOrders] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [timeFilter, setTimeFilter] = useState('all');
-  const [visibleCount, setVisibleCount] = useState(5);
 
-  const fetchFullOrder = useCallback(async (oid, ph) => {
+  const fetchOrder = useCallback(async (oid, ph) => {
     setLoading(true);
     setOrder(null);
-    setOrders(null);
     try {
       const { data } = await api.get('/orders/track', {
         params: { orderId: oid.trim(), phone: ph },
@@ -50,75 +39,23 @@ export default function TrackOrder() {
     }
   }, []);
 
-  const fetchOrdersByPhone = useCallback(async (ph) => {
-    setLoading(true);
-    setOrder(null);
-    setOrders(null);
-    try {
-      const { data } = await api.get('/orders/track-by-phone', {
-        params: { phone: ph },
-      });
-      setOrders(data.orders);
-      setTimeFilter('all');
-      setVisibleCount(5);
-      if (data.orders.length === 0) {
-        toast.error('No orders found for this phone number.');
-      }
-    } catch {
-      toast.error('Could not look up orders.');
-    } finally {
-      setLoading(false);
-      setSearched(true);
-    }
-  }, []);
-
-  // Auto-search on mount if URL has params
+  // Auto-search on mount if URL has both params
   useEffect(() => {
     const urlOrderId = searchParams.get('orderId');
     const urlPhone = searchParams.get('phone');
     if (urlOrderId && urlPhone) {
-      fetchFullOrder(urlOrderId, urlPhone);
-    } else if (urlPhone) {
-      fetchOrdersByPhone(urlPhone);
+      fetchOrder(urlOrderId, urlPhone);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!orderId.trim()) return toast.error('Enter your Order ID');
     if (!/^\d{10}$/.test(phone)) return toast.error('Enter a valid 10-digit phone number');
 
-    if (orderId.trim()) {
-      setSearchParams({ orderId: orderId.trim(), phone });
-      fetchFullOrder(orderId, phone);
-    } else {
-      setSearchParams({ phone });
-      fetchOrdersByPhone(phone);
-    }
+    setSearchParams({ orderId: orderId.trim(), phone });
+    fetchOrder(orderId, phone);
   };
-
-  const viewDetails = (oid) => {
-    setOrderId(oid);
-    setSearchParams({ orderId: oid, phone });
-    fetchFullOrder(oid, phone);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Time-based filtering
-  const filteredOrders = orders
-    ? orders.filter((o) => {
-        if (timeFilter === 'all') return true;
-        const now = new Date();
-        const created = new Date(o.createdAt);
-        const days = { '7d': 7, '30d': 30, '90d': 90 }[timeFilter];
-        if (!days) return true;
-        const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() - days);
-        return created >= cutoff;
-      })
-    : null;
-
-  const totalFiltered = filteredOrders?.length || 0;
-  const visibleOrders = filteredOrders?.slice(0, visibleCount) || [];
-  const hasMore = visibleCount < totalFiltered;
 
   const currentStep = order ? (STEP_MAP[order.fulfillmentStatus] ?? 0) : 0;
   const inputClass =
@@ -130,7 +67,7 @@ export default function TrackOrder() {
         <FiPackage className="mx-auto text-coffee-500 mb-4" size={48} />
         <h1 className="font-display text-3xl font-bold text-coffee-800 mb-2">Track Your Order</h1>
         <p className="text-coffee-500">
-          Enter phone number to see all orders, or add Order ID for full details
+          Enter your Order ID and phone number to view order details
         </p>
       </div>
 
@@ -139,8 +76,9 @@ export default function TrackOrder() {
           <input
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
-            placeholder="Order ID (optional, e.g. ORD-1001)"
+            placeholder="Order ID (e.g. ORD-1001)"
             className={inputClass}
+            required
           />
           <input
             value={phone}
@@ -149,6 +87,7 @@ export default function TrackOrder() {
             inputMode="numeric"
             maxLength={10}
             className={inputClass}
+            required
           />
           <button
             type="submit"
@@ -162,96 +101,15 @@ export default function TrackOrder() {
       </form>
 
       {/* No results */}
-      {searched && !order && !orders?.length && !loading && (
+      {searched && !order && !loading && (
         <div className="text-center py-8 bg-white rounded-xl shadow-sm">
           <p className="text-coffee-500">No orders found. Double-check your details.</p>
         </div>
       )}
 
-      {/* Order summary list (phone-only search) */}
-      {orders && orders.length > 0 && !order && (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold text-coffee-800 text-lg">Your Orders</h2>
-            <select
-              value={timeFilter}
-              onChange={(e) => { setTimeFilter(e.target.value); setVisibleCount(5); }}
-              className="text-sm px-3 py-1.5 rounded-lg border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 text-coffee-700"
-            >
-              <option value="all">All</option>
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 3 months</option>
-            </select>
-          </div>
-          <p className="text-xs text-coffee-400">
-            Showing {Math.min(visibleCount, totalFiltered)} of {totalFiltered} order{totalFiltered !== 1 ? 's' : ''}
-          </p>
-          {totalFiltered === 0 ? (
-            <div className="text-center py-6 bg-white rounded-xl shadow-sm">
-              <p className="text-coffee-400 text-sm">No orders in this period</p>
-            </div>
-          ) : (
-            <>
-              {visibleOrders.map((o) => (
-                <div
-                  key={o.orderId}
-                  className="bg-white rounded-xl shadow-sm p-4 flex flex-wrap items-center gap-3"
-                >
-                  <span className="font-semibold text-coffee-800 text-sm">{o.orderId}</span>
-                  <span className="text-xs text-coffee-400">
-                    {new Date(o.createdAt).toLocaleDateString('en-IN', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </span>
-                  <span className="text-sm font-semibold text-coffee-700">
-                    ₹{o.totalAmount.toLocaleString('en-IN')}
-                  </span>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full capitalize font-medium ${STATUS_COLORS[o.fulfillmentStatus]}`}
-                  >
-                    {o.fulfillmentStatus}
-                  </span>
-                  <button
-                    onClick={() => viewDetails(o.orderId)}
-                    className="ml-auto flex items-center gap-1.5 text-sm text-coffee-600 hover:text-coffee-800 font-medium transition-colors"
-                  >
-                    <FiEye size={15} /> View Details
-                  </button>
-                </div>
-              ))}
-              {hasMore && (
-                <button
-                  onClick={() => setVisibleCount((c) => c + 5)}
-                  className="w-full py-2.5 text-sm font-medium text-coffee-600 bg-white rounded-xl shadow-sm hover:bg-coffee-50 transition-colors"
-                >
-                  Show More
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Full order details (orderId + phone search) */}
+      {/* Full order details */}
       {order && (
         <div className="space-y-6">
-          {/* Back to list */}
-          {orders && orders.length > 1 && (
-            <button
-              onClick={() => {
-                setOrder(null);
-                setOrderId('');
-                setSearchParams({ phone });
-              }}
-              className="text-sm text-coffee-500 hover:text-coffee-700 transition-colors"
-            >
-              &larr; Back to all orders
-            </button>
-          )}
-
           {/* Fulfillment Progress */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-5">

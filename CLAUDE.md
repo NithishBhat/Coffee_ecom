@@ -48,7 +48,7 @@ coffee-shop/
 │       │   ├── Cart.jsx               # Cart page with items, totals, checkout button
 │       │   ├── Checkout.jsx           # Contact + address form, Razorpay integration
 │       │   ├── OrderConfirmation.jsx  # Post-payment: order details, status tracker, invoice link, WhatsApp share
-│       │   ├── TrackOrder.jsx         # Phone-only (order list with time filter, pagination) or phone+ID (full details + invoice) tracking
+│       │   ├── TrackOrder.jsx         # Order tracking by orderId + phone (both required), shows full details + invoice
 │       │   ├── Invoice.jsx            # GST tax invoice page with print/download, per-line HSN/tax breakup
 │       │   └── admin/
 │       │       ├── Login.jsx          # Admin password login
@@ -122,8 +122,7 @@ coffee-shop/
 7. **Frontend handles failures**: stock check errors show toast asking to update cart; refund errors show detailed message with refund timeline
 
 ### Order Tracking
-- **Phone only**: `GET /api/orders/track-by-phone` — returns summary list (orderId, date, total, status only). Shows 5 at a time with "Show More" pagination. Filter by Last 7/30/90 days.
-- **Phone + Order ID**: `GET /api/orders/track` — returns full order details with "Download Invoice" button for paid orders
+- **Order ID + Phone**: `GET /api/orders/track` — requires both `orderId` and `phone`. Returns full order details with "Download Invoice" button for paid orders. Order ID is the primary lookup; phone is the verification factor.
 - Phone normalization handles 10-digit, +91, and 91 prefixes via `$or` query
 
 ### Admin Panel
@@ -157,8 +156,7 @@ coffee-shop/
 | POST | `/api/products/:id/reviews` | Submit review (rate-limited, 1 per phone per product) |
 | POST | `/api/orders/create` | Stock check + create order + Razorpay order. Returns `stockErrors[]` on insufficient stock |
 | POST | `/api/orders/verify` | Verify payment, atomic stock decrement, auto-refund on stock failure. Returns `refunded: true` on oversell |
-| GET | `/api/orders/track-by-phone` | Order summaries by phone (`?phone=`) |
-| GET | `/api/orders/track` | Full order by ID + phone (`?orderId=&phone=`) |
+| GET | `/api/orders/track` | Full order by orderId + phone (`?orderId=&phone=`, both required) |
 | GET | `/api/orders/:id/invoice` | Invoice data for paid order (validated by `?phone=`) |
 | GET | `/api/orders/:id` | Order details by orderId |
 | POST | `/api/webhooks/razorpay` | Razorpay webhook (signature-verified) |
@@ -192,7 +190,7 @@ coffee-shop/
 - **Low stock alerts**: `lowStockAlertSent` boolean on Product prevents duplicate emails. Resets when admin restocks above threshold.
 - **Review verification**: `isVerified` set to true if `customerPhone` matches a paid order containing that product
 - **API client**: Single axios instance (`utils/api.js`) with `baseURL` from `VITE_API_URL` env var, auto-attaches admin JWT, normalizes error messages, global 401 redirect for admin routes
-- **Admin UI**: `App.jsx` uses `useLocation` to swap navbars — `AdminNavbar` on admin pages (except login), public `Navbar` elsewhere. Footer hidden on admin pages. Admin pages have no back-arrow links; the admin navbar handles all navigation. Orders page has time filters, month dropdown, and search that all combine with tab filtering. Customer TrackOrder page also has a month filter dropdown for the order list view.
+- **Admin UI**: `App.jsx` uses `useLocation` to swap navbars — `AdminNavbar` on admin pages (except login), public `Navbar` elsewhere. Footer hidden on admin pages. Admin pages have no back-arrow links; the admin navbar handles all navigation. Orders page has time filters, month dropdown, and search that all combine with tab filtering.
 - **GST compliance**: All product prices are GST-inclusive (5%, HSN 0901). Admin enters one selling price and sees live GST breakup (base price + 5% GST) in the product form — display only, no extra fields. On payment verification, `gstBreakdown` is calculated and stored on the order: base price = subtotal / 1.05, then CGST 2.5% + SGST 2.5% if customer state is Karnataka (intra-state), or IGST 5% if different state (inter-state). Invoice page at `/invoice/:orderId` shows full tax invoice with per-line HSN breakup, printable via `window.print()`. GSTIN placeholder "XXXXXXXXXXXX" in invoice header. "(incl. GST)" labels shown on product cards, detail page, cart, and checkout. Admin dashboard shows GST collected this month.
 - **Server static files**: Only served if `client/dist/` exists (checked with `fs.existsSync`), otherwise returns API health JSON at `/`
 
