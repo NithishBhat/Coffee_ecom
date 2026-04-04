@@ -57,7 +57,8 @@ export default function ProductCard({ product }) {
           </span>
           <span className="text-xs text-coffee-400">{product.weight}</span>
         </div>
-        <h3 className="font-semibold text-coffee-800 mb-1 line-clamp-1">{product.name}</h3>
+        <h3 className="font-semibold text-coffee-800 mb-0.5 line-clamp-1">{product.name}</h3>
+        {product.origin && <p className="text-xs text-coffee-400 mb-1">{product.origin}</p>}
         {product.avgRating > 0 && (
           <div className="flex items-center gap-1.5 mb-1">
             <StarRating rating={product.avgRating} size={13} />

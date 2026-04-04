@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiArrowUp, FiTruck, FiCoffee, FiHeart } from 'react-icons/fi';
+import { FiArrowRight, FiArrowUp, FiTruck, FiCoffee, FiCheckCircle, FiBox } from 'react-icons/fi';
 import api from '../utils/api';
 import ProductCard from '../components/ProductCard';
+import StarRating from '../components/StarRating';
 
 function useFadeIn() {
   const ref = useRef(null);
@@ -30,9 +31,9 @@ export default function Home() {
   const [showTop, setShowTop] = useState(false);
   const heroRef = useRef(null);
 
-  const featuresRef = useFadeIn();
-  const storyRef = useFadeIn();
   const productsRef = useFadeIn();
+  const reviewsRef = useFadeIn();
+  const storyRef = useFadeIn();
 
   useEffect(() => {
     api.get('/products')
@@ -59,7 +60,7 @@ export default function Home() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1600)',
+            backgroundImage: 'url(https://images.unsplash.com/photo-1447933601403-56dc2df6e9c4?w=1600)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
@@ -81,46 +82,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features */}
-      <section ref={featuresRef} className="fade-in-section max-w-7xl mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center p-6">
-            <FiCoffee className="mx-auto text-coffee-500 mb-3" size={32} />
-            <h3 className="font-semibold text-coffee-800 mb-1">Single Origin</h3>
-            <p className="text-sm text-coffee-500">Traceable beans from India's best coffee-growing regions</p>
-          </div>
-          <div className="text-center p-6">
-            <FiTruck className="mx-auto text-coffee-500 mb-3" size={32} />
-            <h3 className="font-semibold text-coffee-800 mb-1">Free Delivery</h3>
-            <p className="text-sm text-coffee-500">On all orders above ₹500, delivered in 3-5 business days</p>
-          </div>
-          <div className="text-center p-6">
-            <FiHeart className="mx-auto text-coffee-500 mb-3" size={32} />
-            <h3 className="font-semibold text-coffee-800 mb-1">Roasted with Love</h3>
-            <p className="text-sm text-coffee-500">Small-batch roasting to ensure peak freshness in every cup</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Our Story */}
-      <section ref={storyRef} className="fade-in-section bg-white py-16">
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div>
-            <img
-              src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600"
-              alt="Coffee plantation"
-              className="rounded-2xl shadow-lg w-full object-cover h-80"
-            />
-          </div>
-          <div>
-            <h2 className="font-display text-3xl font-bold text-coffee-800 mb-4">Our Story</h2>
-            <p className="text-coffee-600 leading-relaxed mb-4">
-              Born from a passion for Indian coffee, Brew Haven partners with small-scale farmers across the Western Ghats. We believe every cup tells a story — from the misty hills of Coorg to the tribal farms of Araku Valley.
-            </p>
-            <p className="text-coffee-600 leading-relaxed">
-              Every batch is freshly roasted in small quantities and shipped within 24 hours, so you always get the freshest coffee possible. No middlemen, no compromises — just pure, honest Indian coffee.
-            </p>
-          </div>
+      {/* Trust Strip */}
+      <section className="bg-coffee-50 border-b border-coffee-100">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-center gap-6 md:gap-12 text-coffee-500 text-sm">
+          <span className="flex items-center gap-2">
+            <FiCheckCircle size={16} className="text-coffee-400" />
+            100% Arabica Beans
+          </span>
+          <span className="flex items-center gap-2">
+            <FiCoffee size={16} className="text-coffee-400" />
+            Freshly Roasted to Order
+          </span>
+          <span className="flex items-center gap-2">
+            <FiTruck size={16} className="text-coffee-400" />
+            Free Delivery Above ₹500
+          </span>
         </div>
       </section>
 
@@ -158,6 +134,52 @@ export default function Home() {
           >
             View All Products <FiArrowRight />
           </Link>
+        </div>
+      </section>
+
+      {/* Customer Reviews */}
+      <section ref={reviewsRef} className="fade-in-section bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-10">
+            <h2 className="font-display text-3xl font-bold text-coffee-800 mb-2">Customers Love Our Coffee</h2>
+            <p className="text-coffee-500">Don't just take our word for it</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              { name: 'Priya Sharma', city: 'Bangalore', rating: 5, quote: 'The Coorg Estate blend is hands down the best coffee I\'ve had. Rich, smooth, and the aroma fills the entire kitchen every morning.' },
+              { name: 'Rahul Menon', city: 'Kochi', rating: 5, quote: 'Finally, a brand that delivers genuinely fresh roasted beans. You can tell the difference from the very first sip. Will never go back to supermarket coffee.' },
+              { name: 'Ananya Iyer', city: 'Chennai', rating: 4, quote: 'Great selection of single-origin beans. The Chikmagalur dark roast is my daily go-to. Fast shipping and beautiful packaging too!' },
+            ].map((t) => (
+              <div key={t.name} className="bg-coffee-50 rounded-xl p-6">
+                <StarRating rating={t.rating} size={16} />
+                <p className="text-coffee-600 text-sm leading-relaxed mt-3 mb-4">"{t.quote}"</p>
+                <p className="font-semibold text-coffee-800 text-sm">{t.name}</p>
+                <p className="text-xs text-coffee-400">{t.city}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Our Story */}
+      <section ref={storyRef} className="fade-in-section py-16">
+        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <div>
+            <img
+              src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=600"
+              alt="Coffee beans being roasted"
+              className="rounded-2xl shadow-lg w-full object-cover h-80"
+            />
+          </div>
+          <div>
+            <h2 className="font-display text-3xl font-bold text-coffee-800 mb-4">Our Story</h2>
+            <p className="text-coffee-600 leading-relaxed mb-4">
+              Born from a passion for Indian coffee, Brew Haven partners with small-scale farmers across the Western Ghats. We believe every cup tells a story — from the misty hills of Coorg to the tribal farms of Araku Valley.
+            </p>
+            <p className="text-coffee-600 leading-relaxed">
+              Every batch is freshly roasted in small quantities and shipped within 24 hours, so you always get the freshest coffee possible. No middlemen, no compromises — just pure, honest Indian coffee.
+            </p>
+          </div>
         </div>
       </section>
 
