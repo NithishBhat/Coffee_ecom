@@ -34,10 +34,20 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        {/* Mobile toggle */}
-        <button className="md:hidden text-white" onClick={() => setOpen(!open)}>
-          {open ? <FiX size={24} /> : <FiMenu size={24} />}
-        </button>
+        {/* Mobile: cart icon + hamburger toggle */}
+        <div className="flex md:hidden items-center gap-4">
+          <Link to="/cart" className="relative text-white">
+            <FiShoppingBag size={22} />
+            {itemCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-coffee-400 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
+                {itemCount}
+              </span>
+            )}
+          </Link>
+          <button className="text-white" onClick={() => setOpen(!open)}>
+            {open ? <FiX size={24} /> : <FiMenu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
@@ -46,9 +56,6 @@ export default function Navbar() {
           <NavLink to="/" end className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Home</NavLink>
           <NavLink to="/products" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Shop</NavLink>
           <NavLink to="/track" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>Track Order</NavLink>
-          <NavLink to="/cart" className="block text-coffee-100 hover:text-white" onClick={() => setOpen(false)}>
-            Cart {itemCount > 0 && `(${itemCount})`}
-          </NavLink>
         </div>
       )}
     </nav>
