@@ -1,12 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowRight, FiTruck, FiCoffee, FiHeart } from 'react-icons/fi';
+import { FiArrowRight, FiArrowUp, FiTruck, FiCoffee, FiHeart } from 'react-icons/fi';
 import api from '../utils/api';
 import ProductCard from '../components/ProductCard';
+
+function useFadeIn() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('is-visible');
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showTop, setShowTop] = useState(false);
+  const heroRef = useRef(null);
+
+  const featuresRef = useFadeIn();
+  const storyRef = useFadeIn();
+  const productsRef = useFadeIn();
 
   useEffect(() => {
     api.get('/products')
@@ -15,10 +41,21 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    const hero = heroRef.current;
+    if (!hero) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowTop(!entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(hero);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div>
       {/* Hero */}
-      <section className="relative bg-coffee-900 text-white overflow-hidden">
+      <section ref={heroRef} className="relative bg-coffee-900 text-white overflow-hidden">
         <div
           className="absolute inset-0"
           style={{
@@ -45,7 +82,7 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
+      <section ref={featuresRef} className="fade-in-section max-w-7xl mx-auto px-4 py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="text-center p-6">
             <FiCoffee className="mx-auto text-coffee-500 mb-3" size={32} />
@@ -66,7 +103,7 @@ export default function Home() {
       </section>
 
       {/* Our Story */}
-      <section className="bg-white py-16">
+      <section ref={storyRef} className="fade-in-section bg-white py-16">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           <div>
             <img
@@ -88,7 +125,7 @@ export default function Home() {
       </section>
 
       {/* Featured Products */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
+      <section ref={productsRef} className="fade-in-section max-w-7xl mx-auto px-4 py-16">
         <div className="text-center mb-10">
           <h2 className="font-display text-3xl font-bold text-coffee-800 mb-2">Featured Coffees</h2>
           <p className="text-coffee-500">Our most popular picks</p>
@@ -131,6 +168,17 @@ export default function Home() {
           <p className="text-coffee-200">Fresh beans at your doorstep in 3-5 business days</p>
         </div>
       </section>
+
+      {/* Back to top */}
+      {showTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-coffee-700 hover:bg-coffee-800 text-white shadow-lg flex items-center justify-center transition-colors"
+          aria-label="Back to top"
+        >
+          <FiArrowUp size={20} />
+        </button>
+      )}
     </div>
   );
 }
