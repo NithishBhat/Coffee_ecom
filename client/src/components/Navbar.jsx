@@ -36,15 +36,15 @@ export default function Navbar() {
 
         {/* Mobile: cart icon + hamburger toggle */}
         <div className="flex md:hidden items-center gap-4">
-          <Link to="/cart" className="relative text-white">
+          <Link to="/cart" className="relative text-white p-2 -m-2">
             <FiShoppingBag size={22} />
             {itemCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-coffee-400 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
+              <span className="absolute top-0 right-0 bg-coffee-400 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
                 {itemCount}
               </span>
             )}
           </Link>
-          <button className="text-white" onClick={() => setOpen(!open)}>
+          <button className="text-white p-2 -m-2" onClick={() => setOpen(!open)}>
             {open ? <FiX size={24} /> : <FiMenu size={24} />}
           </button>
         </div>

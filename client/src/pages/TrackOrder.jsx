@@ -92,7 +92,7 @@ export default function TrackOrder() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white py-3 rounded-xl font-semibold transition-colors"
+            className="w-full flex items-center justify-center gap-2 bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
           >
             <FiSearch size={18} />
             {loading ? 'Searching...' : 'Track Order'}
@@ -217,14 +217,14 @@ export default function TrackOrder() {
             {order.paymentStatus === 'paid' && (
               <Link
                 to={`/invoice/${order.orderId}?phone=${encodeURIComponent(phone)}`}
-                className="flex-1 text-center bg-coffee-600 hover:bg-coffee-700 text-white py-3 rounded-xl font-semibold transition-colors"
+                className="flex-1 text-center bg-coffee-600 hover:bg-coffee-700 text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
               >
                 Download Invoice
               </Link>
             )}
             <Link
               to="/products"
-              className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
+              className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
             >
               Continue Shopping
             </Link>

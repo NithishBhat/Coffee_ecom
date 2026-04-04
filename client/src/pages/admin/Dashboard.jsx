@@ -154,41 +154,41 @@ export default function AdminDashboard() {
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-8">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">Today</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.today.revenue)}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{fmt(stats.today.revenue)}</p>
               <p className="text-xs text-coffee-400 mt-1">{stats.today.orders} orders</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">This Week</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.week.revenue)}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{fmt(stats.week.revenue)}</p>
               <p className="text-xs text-coffee-400 mt-1">{stats.week.orders} orders</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <BsCurrencyRupee className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">This Month</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.month.revenue)}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{fmt(stats.month.revenue)}</p>
               <p className="text-xs text-coffee-400 mt-1">{stats.month.orders} orders</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <FiShoppingCart className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">Avg Order Value</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.avgOrderValue)}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{fmt(stats.avgOrderValue)}</p>
               <p className="text-xs text-coffee-400 mt-1">{stats.total.orders} total orders</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <FiUsers className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">Customers</p>
-              <p className="text-xl font-bold text-coffee-800">{stats.totalCustomers}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{stats.totalCustomers}</p>
               <p className="text-xs text-coffee-400 mt-1">unique buyers</p>
             </div>
-            <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5">
               <FiFileText className="text-coffee-500 mb-2" size={22} />
               <p className="text-xs text-coffee-400">GST This Month</p>
-              <p className="text-xl font-bold text-coffee-800">{fmt(stats.gstCollectedMonth)}</p>
+              <p className="text-base sm:text-xl font-bold text-coffee-800 break-all">{fmt(stats.gstCollectedMonth)}</p>
               <p className="text-xs text-coffee-400 mt-1">@ 5% (HSN 0901)</p>
             </div>
           </div>

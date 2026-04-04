@@ -33,7 +33,7 @@ export default function Cart() {
           ))}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 h-fit sticky top-20">
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 h-fit lg:sticky lg:top-20">
           <h2 className="font-semibold text-coffee-800 text-lg mb-4">Order Summary</h2>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between text-coffee-600">
@@ -61,7 +61,7 @@ export default function Cart() {
           </div>
           <Link
             to="/checkout"
-            className="block text-center bg-coffee-600 hover:bg-coffee-700 text-white mt-6 py-3 rounded-xl font-semibold transition-colors"
+            className="block text-center bg-coffee-600 hover:bg-coffee-700 text-white mt-6 min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
           >
             Proceed to Checkout
           </Link>
