@@ -100,6 +100,7 @@ export default function ProductDetail() {
     addToCart(product, quantity);
     toast.success(`${quantity}x ${product.name} added to cart`);
     setQuantity(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCartIncrement = () => {
