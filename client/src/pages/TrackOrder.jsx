@@ -62,7 +62,7 @@ export default function TrackOrder() {
     'w-full px-4 py-3 rounded-xl border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent text-sm';
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-12">
+    <div className={`max-w-2xl mx-auto px-4 py-12${!order && !searched ? ' min-h-[calc(100vh-4rem)] flex flex-col justify-center' : ''}`}>
       <div className="text-center mb-8">
         <FiPackage className="mx-auto text-coffee-500 mb-4" size={48} />
         <h1 className="font-display text-3xl font-bold text-coffee-800 mb-2">Track Your Order</h1>
