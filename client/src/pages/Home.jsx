@@ -20,13 +20,14 @@ export default function Home() {
       {/* Hero */}
       <section className="relative bg-coffee-900 text-white overflow-hidden">
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1447933601403-56dc2df6e9c4?w=1400)',
+            backgroundImage: 'url(https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1600)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
         />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="relative max-w-7xl mx-auto px-4 py-24 md:py-36 text-center">
           <h1 className="font-display text-4xl md:text-6xl font-bold mb-4 leading-tight">
             Freshly Roasted.<br />Delivered to Your Door.
@@ -36,7 +37,7 @@ export default function Home() {
           </p>
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 bg-coffee-500 hover:bg-coffee-600 text-white px-8 py-3 rounded-full text-lg font-semibold transition-colors"
+            className="inline-flex items-center gap-2 bg-amber-100 hover:bg-amber-200 text-coffee-800 px-8 py-3 rounded-full text-lg font-semibold transition-colors shadow-lg"
           >
             Shop Now <FiArrowRight />
           </Link>

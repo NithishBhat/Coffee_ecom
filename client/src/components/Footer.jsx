@@ -1,20 +1,35 @@
-import { FiInstagram, FiMessageCircle } from 'react-icons/fi';
+import { FiInstagram, FiMessageCircle, FiMail, FiPhone } from 'react-icons/fi';
 
 export default function Footer() {
   return (
     <footer className="bg-coffee-800 text-coffee-200 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         <div>
           <h3 className="font-display text-xl font-bold text-white mb-2">Brew Haven</h3>
           <p className="text-sm leading-relaxed">
-            Freshly roasted Indian coffee beans, sourced directly from the finest estates across Karnataka, Kerala, and beyond.
+            From bean to cup — premium Indian coffee roasted fresh and delivered to your doorstep.
           </p>
         </div>
         <div>
           <h4 className="font-semibold text-white mb-2">Quick Links</h4>
           <ul className="space-y-1 text-sm">
+            <li><a href="/" className="hover:text-white transition-colors">Home</a></li>
             <li><a href="/products" className="hover:text-white transition-colors">Shop All</a></li>
+            <li><a href="/track" className="hover:text-white transition-colors">Track Order</a></li>
             <li><a href="/cart" className="hover:text-white transition-colors">Cart</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-semibold text-white mb-2">Contact Us</h4>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-center gap-2">
+              <FiMail size={14} />
+              <a href="mailto:hello@brewhaven.in" className="hover:text-white transition-colors">hello@brewhaven.in</a>
+            </li>
+            <li className="flex items-center gap-2">
+              <FiPhone size={14} />
+              <a href="tel:+919999999999" className="hover:text-white transition-colors">+91 99999 99999</a>
+            </li>
           </ul>
         </div>
         <div>

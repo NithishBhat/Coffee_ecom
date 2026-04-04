@@ -40,7 +40,7 @@ export default function ProductCard({ product }) {
   return (
     <Link
       to={`/products/${product._id}`}
-      className="group bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+      className="group bg-white rounded-xl shadow-sm hover:shadow-lg hover:scale-[1.03] transition-all duration-300 overflow-hidden flex flex-col"
     >
       <div className="aspect-square overflow-hidden bg-coffee-100">
         <img
