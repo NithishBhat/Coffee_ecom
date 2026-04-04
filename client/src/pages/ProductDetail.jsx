@@ -156,8 +156,7 @@ export default function ProductDetail() {
             <div className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-semibold text-center">
               Out of Stock
             </div>
-          ) : (
-            {cartQty > 0 ? (
+          ) : cartQty > 0 ? (
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="flex items-center bg-coffee-600 rounded-xl overflow-hidden">
                   <button
@@ -202,7 +201,6 @@ export default function ProductDetail() {
                 </button>
               </div>
             )}
-          )}
 
           {!outOfStock && product.stockQuantity <= 5 && (
             <p className="text-sm text-red-500 font-semibold mt-3">Only {product.stockQuantity} left!</p>
