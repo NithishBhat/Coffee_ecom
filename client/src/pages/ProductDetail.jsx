@@ -23,8 +23,13 @@ export default function ProductDetail() {
   const [reviews, setReviews] = useState([]);
   const [avgRating, setAvgRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
+  const [verifyPhone, setVerifyPhone] = useState(localStorage.getItem('customerPhone') || '');
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [existingReview, setExistingReview] = useState(null);
   const [reviewForm, setReviewForm] = useState({
-    customerName: '', customerPhone: localStorage.getItem('customerPhone') || '', rating: 0, reviewText: '',
+    customerName: '', customerPhone: '', rating: 0, reviewText: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -46,10 +51,37 @@ export default function ProductDetail() {
     loadReviews();
   }, [id, loadReviews]);
 
+  const handleVerifyPurchase = async (e) => {
+    e.preventDefault();
+    if (!/^\d{10}$/.test(verifyPhone)) return setVerifyError('Enter a valid 10-digit phone number');
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      const { data } = await api.get('/orders/verify-purchase', {
+        params: { phone: verifyPhone, productId: id },
+      });
+      if (data.purchased) {
+        // Check if they already reviewed this product
+        const existing = reviews.find((r) => r.customerPhone === verifyPhone);
+        if (existing) {
+          setExistingReview(existing);
+          setVerified(true);
+        } else {
+          setVerified(true);
+          setReviewForm((f) => ({ ...f, customerName: data.customerName || '', customerPhone: verifyPhone }));
+        }
+      } else {
+        setVerifyError("We couldn't find a purchase with this phone number.");
+      }
+    } catch {
+      setVerifyError("We couldn't find a purchase with this phone number.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
-    if (!reviewForm.customerName.trim()) return toast.error('Name is required');
-    if (!/^\d{10}$/.test(reviewForm.customerPhone)) return toast.error('Valid 10-digit phone required');
     if (reviewForm.rating === 0) return toast.error('Please select a rating');
     if (!reviewForm.reviewText.trim()) return toast.error('Please write a review');
 
@@ -57,7 +89,9 @@ export default function ProductDetail() {
     try {
       await api.post(`/products/${id}/reviews`, reviewForm);
       toast.success('Review submitted!');
-      setReviewForm({ customerName: '', customerPhone: reviewForm.customerPhone, rating: 0, reviewText: '' });
+      setReviewForm({ customerName: '', customerPhone: '', rating: 0, reviewText: '' });
+      setVerified(false);
+      setVerifyPhone('');
       loadReviews();
     } catch (err) {
       toast.error(err.message);
@@ -219,50 +253,85 @@ export default function ProductDetail() {
         </h2>
 
         {/* Write a Review */}
-        <form onSubmit={handleReviewSubmit} className="bg-white rounded-xl shadow-sm p-6 mb-8">
-          <h3 className="font-semibold text-coffee-800 mb-4">Write a Review</h3>
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <input
-                value={reviewForm.customerName}
-                onChange={(e) => setReviewForm({ ...reviewForm, customerName: e.target.value })}
-                placeholder="Your Name"
-                className={inputClass}
-              />
-              <input
-                value={reviewForm.customerPhone}
-                onChange={(e) => setReviewForm({ ...reviewForm, customerPhone: e.target.value })}
-                placeholder="Phone (10 digits)"
-                inputMode="numeric"
-                maxLength={10}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-coffee-500 mb-2">Your Rating</p>
-              <StarRating
-                rating={reviewForm.rating}
-                size={28}
-                interactive
-                onRate={(r) => setReviewForm({ ...reviewForm, rating: r })}
-              />
-            </div>
-            <textarea
-              value={reviewForm.reviewText}
-              onChange={(e) => setReviewForm({ ...reviewForm, reviewText: e.target.value })}
-              placeholder="Share your experience with this coffee..."
-              rows={3}
-              className={inputClass}
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="self-start bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors"
-            >
-              {submitting ? 'Submitting...' : 'Submit Review'}
-            </button>
-          </div>
-        </form>
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+          {!verified ? (
+            <>
+              <h3 className="font-semibold text-coffee-800 mb-4">Write a Review</h3>
+              <p className="text-sm text-coffee-500 mb-4">Verify your purchase to leave a review.</p>
+              <form onSubmit={handleVerifyPurchase} className="flex flex-col sm:flex-row gap-3">
+                <input
+                  value={verifyPhone}
+                  onChange={(e) => { setVerifyPhone(e.target.value); setVerifyError(''); }}
+                  placeholder="Phone number used for order"
+                  inputMode="numeric"
+                  maxLength={10}
+                  className={`${inputClass} flex-1`}
+                />
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white px-6 py-3 rounded-xl font-semibold text-sm transition-colors whitespace-nowrap"
+                >
+                  {verifying ? 'Verifying...' : 'Verify Purchase'}
+                </button>
+              </form>
+              {verifyError && (
+                <p className="text-sm text-coffee-400 mt-3">{verifyError}</p>
+              )}
+            </>
+          ) : existingReview ? (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-coffee-800">Your Review</h3>
+                <span className="text-xs text-coffee-500 bg-coffee-50 px-2 py-1 rounded-full">
+                  Already reviewed
+                </span>
+              </div>
+              <p className="text-sm text-coffee-500 mb-3">You've already reviewed this product.</p>
+              <div className="bg-coffee-50 rounded-lg p-4">
+                <StarRating rating={existingReview.rating} size={16} />
+                <p className="text-sm text-coffee-600 mt-2">{existingReview.reviewText}</p>
+                <p className="text-xs text-coffee-400 mt-2">
+                  {new Date(existingReview.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleReviewSubmit}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-coffee-800">Write a Review</h3>
+                <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
+                  <FiCheckCircle size={12} /> Verified as {reviewForm.customerName}
+                </span>
+              </div>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <p className="text-sm text-coffee-500 mb-2">Your Rating</p>
+                  <StarRating
+                    rating={reviewForm.rating}
+                    size={28}
+                    interactive
+                    onRate={(r) => setReviewForm({ ...reviewForm, rating: r })}
+                  />
+                </div>
+                <textarea
+                  value={reviewForm.reviewText}
+                  onChange={(e) => setReviewForm({ ...reviewForm, reviewText: e.target.value })}
+                  placeholder="Share your experience with this coffee..."
+                  rows={3}
+                  className={inputClass}
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="self-start bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white px-6 py-2.5 rounded-xl font-semibold text-sm transition-colors"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
 
         {/* Reviews List */}
         {reviews.length === 0 ? (

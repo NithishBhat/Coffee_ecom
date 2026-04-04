@@ -84,17 +84,17 @@ export default function ProductCard({ product }) {
             <div className="flex items-center bg-coffee-600 rounded-lg overflow-hidden">
               <button
                 onClick={handleDecrement}
-                className="px-3 py-2 text-white hover:bg-coffee-700 transition-colors"
+                className="w-9 h-9 flex items-center justify-center text-white hover:bg-coffee-700 transition-colors"
               >
                 <FiMinus size={14} />
               </button>
-              <span className="px-3 py-2 text-white font-semibold text-sm min-w-[2rem] text-center">
+              <span className="px-2 text-white font-semibold text-sm min-w-[1.5rem] text-center">
                 {cartQty}
               </span>
               <button
                 onClick={handleIncrement}
                 disabled={cartQty >= product.stockQuantity}
-                className="px-3 py-2 text-white hover:bg-coffee-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-9 h-9 flex items-center justify-center text-white hover:bg-coffee-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <FiPlus size={14} />
               </button>
@@ -102,7 +102,7 @@ export default function ProductCard({ product }) {
           ) : (
             <button
               onClick={handleAdd}
-              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-coffee-600 text-white hover:bg-coffee-700"
+              className="px-4 py-2.5 rounded-lg text-sm font-medium transition-colors bg-coffee-600 text-white hover:bg-coffee-700"
             >
               Add to Cart
             </button>

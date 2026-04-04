@@ -185,7 +185,7 @@ export default function OrderConfirmation() {
           <>
             <Link
               to={`/invoice/${order.orderId}?phone=${encodeURIComponent(order.customer.phone)}`}
-              className="flex-1 flex items-center justify-center gap-2 bg-coffee-600 hover:bg-coffee-700 text-white py-3 rounded-xl font-semibold transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-coffee-600 hover:bg-coffee-700 text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
             >
               <FiFileText /> Download Invoice
             </Link>
@@ -193,7 +193,7 @@ export default function OrderConfirmation() {
               href={`https://wa.me/?text=${whatsappMsg}`}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-semibold transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
             >
               <FiMessageCircle /> Share on WhatsApp
             </a>
@@ -201,7 +201,7 @@ export default function OrderConfirmation() {
         )}
         <Link
           to={order.paymentStatus === 'refunded' ? '/products' : `/track?orderId=${encodeURIComponent(order.orderId)}&phone=${encodeURIComponent(order.customer.phone)}`}
-          className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white py-3 rounded-xl font-semibold transition-colors"
+          className="flex-1 text-center border-2 border-coffee-600 text-coffee-600 hover:bg-coffee-600 hover:text-white min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
         >
           {order.paymentStatus === 'refunded' ? 'Continue Shopping' : 'Track Order'}
         </Link>

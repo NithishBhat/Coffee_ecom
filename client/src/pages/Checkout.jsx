@@ -231,7 +231,7 @@ export default function Checkout() {
         </div>
 
         {/* Order Summary */}
-        <div className="bg-white rounded-xl shadow-sm p-6 h-fit sticky top-20">
+        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 h-fit lg:sticky lg:top-20">
           <h2 className="font-semibold text-coffee-800 text-lg mb-4">Order Summary</h2>
           <div className="space-y-3 mb-4">
             {items.map((item) => (
@@ -260,7 +260,7 @@ export default function Checkout() {
           <button
             onClick={handlePay}
             disabled={loading}
-            className="w-full bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white mt-6 py-3 rounded-xl font-semibold transition-colors"
+            className="w-full bg-coffee-600 hover:bg-coffee-700 disabled:bg-coffee-300 text-white mt-6 min-h-[44px] py-3 rounded-xl font-semibold transition-colors"
           >
             {loading ? 'Processing...' : `Pay ₹${totalAmount.toLocaleString('en-IN')}`}
           </button>

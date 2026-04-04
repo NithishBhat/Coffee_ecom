@@ -50,9 +50,9 @@ export default function Invoice() {
       </div>
 
       {/* Invoice */}
-      <div className="bg-white rounded-xl shadow-sm p-8 print:shadow-none print:p-0" id="invoice">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-8 print:shadow-none print:p-0" id="invoice">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8 pb-6 border-b-2 border-coffee-200">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8 pb-6 border-b-2 border-coffee-200">
           <div>
             <h1 className="text-2xl font-bold text-coffee-800">Brew Haven</h1>
             <p className="text-xs text-coffee-400 mt-1">GSTIN: XXXXXXXXXXXX</p>
@@ -129,7 +129,7 @@ export default function Invoice() {
 
         {/* Totals */}
         <div className="flex justify-end mb-8">
-          <div className="w-72">
+          <div className="w-full sm:w-72">
             <div className="flex justify-between text-xs text-coffee-500 py-1.5">
               <span>Taxable Amount</span>
               <span>{fmt(gst?.basePrice || order.subtotal)}</span>

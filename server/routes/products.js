@@ -74,12 +74,12 @@ const reviewLimiter = rateLimit({
   message: { success: false, message: 'Too many reviews submitted, try again later' },
 });
 
-// POST /api/products/:id/reviews — submit a review
+// POST /api/products/:id/reviews — submit a review (purchase-verified)
 router.post('/:id/reviews', reviewLimiter, async (req, res, next) => {
   try {
-    const { customerName, customerPhone, rating, reviewText } = req.body;
+    const { customerPhone, rating, reviewText } = req.body;
 
-    if (!customerName?.trim() || !customerPhone || !rating || !reviewText?.trim()) {
+    if (!customerPhone || !rating || !reviewText?.trim()) {
       return res.status(400).json({ success: false, message: 'All fields are required' });
     }
     if (rating < 1 || rating > 5) {
@@ -98,10 +98,10 @@ router.post('/:id/reviews', reviewLimiter, async (req, res, next) => {
     // Check for duplicate review
     const existing = await Review.findOne({ productId: req.params.id, customerPhone });
     if (existing) {
-      return res.status(409).json({ success: false, message: 'You have already reviewed this product' });
+      return res.status(400).json({ success: false, message: "You've already reviewed this product." });
     }
 
-    // Check if this is a verified purchase
+    // Verify purchase and get customer name
     const phone10 = customerPhone.replace(/^\+?91/, '').slice(-10);
     const verifiedOrder = await Order.findOne({
       'items.productId': product._id,
@@ -113,19 +113,23 @@ router.post('/:id/reviews', reviewLimiter, async (req, res, next) => {
       ],
     });
 
+    if (!verifiedOrder) {
+      return res.status(403).json({ success: false, message: 'You can only review products you\'ve purchased' });
+    }
+
     const review = await Review.create({
       productId: req.params.id,
-      customerName: customerName.trim(),
+      customerName: verifiedOrder.customer.name,
       customerPhone,
       rating: Math.round(rating),
       reviewText: reviewText.trim(),
-      isVerified: !!verifiedOrder,
+      isVerified: true,
     });
 
     res.status(201).json({ success: true, review });
   } catch (err) {
     if (err.code === 11000) {
-      return res.status(409).json({ success: false, message: 'You have already reviewed this product' });
+      return res.status(400).json({ success: false, message: "You've already reviewed this product." });
     }
     next(err);
   }

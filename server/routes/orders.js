@@ -252,6 +252,33 @@ router.get('/track', async (req, res, next) => {
   }
 });
 
+// GET /api/orders/verify-purchase — check if phone has a paid order with this product
+router.get('/verify-purchase', async (req, res, next) => {
+  try {
+    const { phone, productId } = req.query;
+    if (!phone || !productId) {
+      return res.status(400).json({ success: false, message: 'Phone and productId are required' });
+    }
+    const phone10 = phone.replace(/^\+?91/, '').slice(-10);
+    const order = await Order.findOne({
+      'items.productId': productId,
+      paymentStatus: 'paid',
+      $or: [
+        { 'customer.phone': phone10 },
+        { 'customer.phone': `+91${phone10}` },
+        { 'customer.phone': `91${phone10}` },
+      ],
+    });
+    res.json({
+      success: true,
+      purchased: !!order,
+      customerName: order ? order.customer.name : null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/orders/:id/invoice — invoice data (public, validated by phone)
 router.get('/:id/invoice', async (req, res, next) => {
   try {

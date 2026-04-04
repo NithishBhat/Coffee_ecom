@@ -125,8 +125,8 @@ export default function ProductsManager() {
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button onClick={() => openEdit(p)} className="text-coffee-500 hover:text-coffee-700 p-1"><FiEdit2 size={16} /></button>
-                      <button onClick={() => handleDelete(p._id, p.name)} className="text-red-400 hover:text-red-600 p-1 ml-2"><FiTrash2 size={16} /></button>
+                      <button onClick={() => openEdit(p)} className="text-coffee-500 hover:text-coffee-700 p-2"><FiEdit2 size={16} /></button>
+                      <button onClick={() => handleDelete(p._id, p.name)} className="text-red-400 hover:text-red-600 p-2 ml-1"><FiTrash2 size={16} /></button>
                     </td>
                   </tr>
                 ))}
@@ -152,7 +152,7 @@ export default function ProductsManager() {
             <div className="space-y-3">
               <input name="name" value={form.name} onChange={update} placeholder="Product Name" className={inputClass} />
               <textarea name="description" value={form.description} onChange={update} placeholder="Description" rows={3} className={inputClass} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <input name="price" value={form.price} onChange={update} placeholder="Selling Price (₹, incl. GST)" type="number" className={inputClass} />
                   {Number(form.price) > 0 && (() => {
@@ -179,7 +179,7 @@ export default function ProductsManager() {
                 </div>
                 <input name="weight" value={form.weight} onChange={update} placeholder="Weight (e.g. 250g)" className={inputClass} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <select name="roastType" value={form.roastType} onChange={update} className={inputClass}>
                   <option value="light">Light Roast</option>
                   <option value="medium">Medium Roast</option>
