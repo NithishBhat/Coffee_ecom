@@ -14,7 +14,7 @@ const roastColors = {
 
 export default function ProductDetail() {
   const { id } = useParams();
-  const { addToCart } = useCart();
+  const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
@@ -93,11 +93,26 @@ export default function ProductDetail() {
   }
 
   const outOfStock = product.stockQuantity <= 0;
+  const cartItem = items.find((i) => i.productId === product._id);
+  const cartQty = cartItem ? cartItem.quantity : 0;
 
   const handleAdd = () => {
     addToCart(product, quantity);
     toast.success(`${quantity}x ${product.name} added to cart`);
     setQuantity(1);
+  };
+
+  const handleCartIncrement = () => {
+    addToCart(product, 1);
+  };
+
+  const handleCartDecrement = () => {
+    if (cartQty <= 1) {
+      removeFromCart(product._id);
+      toast.success(`${product.name} removed from cart`);
+    } else {
+      updateQuantity(product._id, cartQty - 1);
+    }
   };
 
   const inputClass = 'w-full px-4 py-3 rounded-xl border border-coffee-200 bg-white focus:outline-none focus:ring-2 focus:ring-coffee-400 focus:border-transparent text-sm';
@@ -142,29 +157,51 @@ export default function ProductDetail() {
               Out of Stock
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center bg-white border border-coffee-200 rounded-xl overflow-hidden">
+            {cartQty > 0 ? (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center bg-coffee-600 rounded-xl overflow-hidden">
+                  <button
+                    onClick={handleCartDecrement}
+                    className="p-3 text-white hover:bg-coffee-700 transition-colors"
+                  >
+                    <FiMinus />
+                  </button>
+                  <span className="px-5 font-semibold text-lg text-white min-w-[3rem] text-center">{cartQty}</span>
+                  <button
+                    onClick={handleCartIncrement}
+                    disabled={cartQty >= product.stockQuantity}
+                    className="p-3 text-white hover:bg-coffee-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiPlus />
+                  </button>
+                </div>
+                <span className="text-sm text-coffee-500 font-medium">in cart</span>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex items-center bg-white border border-coffee-200 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="p-3 hover:bg-coffee-50 transition-colors"
+                  >
+                    <FiMinus />
+                  </button>
+                  <span className="px-5 font-semibold text-lg">{quantity}</span>
+                  <button
+                    onClick={() => setQuantity((q) => Math.min(product.stockQuantity, q + 1))}
+                    className="p-3 hover:bg-coffee-50 transition-colors"
+                  >
+                    <FiPlus />
+                  </button>
+                </div>
                 <button
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="p-3 hover:bg-coffee-50 transition-colors"
+                  onClick={handleAdd}
+                  className="bg-coffee-600 hover:bg-coffee-700 text-white px-8 py-3 rounded-xl font-semibold transition-colors w-full sm:w-auto"
                 >
-                  <FiMinus />
-                </button>
-                <span className="px-5 font-semibold text-lg">{quantity}</span>
-                <button
-                  onClick={() => setQuantity((q) => Math.min(product.stockQuantity, q + 1))}
-                  className="p-3 hover:bg-coffee-50 transition-colors"
-                >
-                  <FiPlus />
+                  Add to Cart — ₹{(product.price * quantity).toLocaleString('en-IN')}
                 </button>
               </div>
-              <button
-                onClick={handleAdd}
-                className="bg-coffee-600 hover:bg-coffee-700 text-white px-8 py-3 rounded-xl font-semibold transition-colors w-full sm:w-auto"
-              >
-                Add to Cart — ₹{(product.price * quantity).toLocaleString('en-IN')}
-              </button>
-            </div>
+            )}
           )}
 
           {!outOfStock && product.stockQuantity <= 5 && (
