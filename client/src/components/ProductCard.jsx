@@ -20,6 +20,7 @@ export default function ProductCard({ product }) {
     e.preventDefault();
     addToCart(product);
     toast.success(`${product.name} added to cart`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleIncrement = (e) => {
