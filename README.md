@@ -1,5 +1,7 @@
 # Brew Haven - Indian Coffee E-Commerce
 
+> **Note:** This project was vibe coded. It was built mostly with AI coding tools, not written by hand.
+
 **Live demo:** https://coffee-ecom-rho.vercel.app
 
 A full-stack coffee bean e-commerce store built with the MERN stack. Customers browse products, add to cart, checkout with Razorpay payments, and track orders. GST-compliant with tax invoices. Admins manage products, orders, reviews, and view sales analytics.
